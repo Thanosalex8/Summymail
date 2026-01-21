@@ -1,4 +1,4 @@
-name: Deploy Summymail
+name: Final Deploy Summymail
 
 on:
   push:
@@ -20,16 +20,17 @@ jobs:
       - name: Install clasp
         run: npm install -g @google/clasp
 
-      - name: Create clasprc.json
+      - name: Build Credentials & Push
         env:
-          CLASPRC_SECRET: ${{ secrets.CLASPRC_JSON }}
+          REFRESH_TOKEN: ${{ secrets.CLASPRC_JSON }}
+          CLIENT_ID: "1072944905499-vm2v2i5dvn0a0d2o4ca36i1vge8cvbn0.apps.googleusercontent.com"
+          CLIENT_SECRET: "v6V3fKV_zWU7iw1DrpO1rknX"
         run: |
-          # Γράφουμε το αρχείο στο home directory ΚΑΙ στο τρέχον folder
-          echo "$CLASPRC_SECRET" | base64 -d > ~/.clasprc.json
-          echo "$CLASPRC_SECRET" | base64 -d > ./.clasprc.json
-
-      - name: Push to Apps Script
-        run: clasp push --force
-
-      - name: Deploy Version
-        run: clasp deploy --description "Auto-deploy from GitHub"
+          # Δημιουργία του αρχείου απευθείας στον server για να αποφύγουμε σφάλματα μεταφοράς
+          echo "{\"tokens\":{\"default\":{\"client_id\":\"$CLIENT_ID\",\"client_secret\":\"$CLIENT_SECRET\",\"refresh_token\":\"$REFRESH_TOKEN\",\"type\":\"authorized_user\"}}}" > ~/.clasprc.json
+          
+          # Εκτέλεση του push
+          clasp push --force
+          
+          # Δημιουργία νέου Deployment
+          clasp deploy --description "Auto-deploy via Refresh Token"
