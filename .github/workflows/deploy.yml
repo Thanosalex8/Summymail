@@ -1,4 +1,4 @@
-name: Final Victory Deploy
+name: Google API Check & Deploy
 
 on:
   push:
@@ -20,20 +20,35 @@ jobs:
       - name: Install clasp
         run: npm install -g @google/clasp
 
-      - name: Force Build Credentials
+      - name: Create Credentials (Hardcoded Mode)
         env:
           REFRESH_TOKEN: ${{ secrets.CLASPRC_JSON }}
           CLIENT_ID: "1072944905499-vm2v2i5dvn0a0d2o4ca36i1vge8cvbn0.apps.googleusercontent.com"
           CLIENT_SECRET: "v6V3fKV_zWU7iw1DrpO1rknX"
         run: |
-          # Δημιουργία πλήρους δομής με dummy access_token για να μην παραπονιέται το clasp
-          echo "{\"tokens\":{\"default\":{\"client_id\":\"$CLIENT_ID\",\"client_secret\":\"$CLIENT_SECRET\",\"refresh_token\":\"$REFRESH_TOKEN\",\"access_token\":\"dummy_token\",\"expiry_date\":1,\"type\":\"authorized_user\"}}}" > ~/.clasprc.json
-          
-          echo "LOG: Credentials built. Testing connection..."
+          node -e '
+          const fs = require("fs");
+          const path = require("path");
+          const os = require("os");
+          const credentials = {
+            tokens: {
+              default: {
+                client_id: process.env.CLIENT_ID,
+                client_secret: process.env.CLIENT_SECRET,
+                refresh_token: process.env.REFRESH_TOKEN,
+                access_token: "dummy",
+                expiry_date: 1,
+                type: "authorized_user"
+              }
+            }
+          };
+          fs.writeFileSync(path.join(os.homedir(), ".clasprc.json"), JSON.stringify(credentials));
+          '
+          echo "LOG: Credentials file generated via Node.js"
           clasp login --status
 
       - name: Push to Apps Script
         run: clasp push --force
 
       - name: Deploy Version
-        run: clasp deploy --description "Success at last"
+        run: clasp deploy --description "Final Attempt after API check"
