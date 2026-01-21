@@ -1,3 +1,5 @@
+- name: Create clasprc.json
+        run: |
 name: Deploy Summymail to Apps Script
 
 on:
@@ -21,10 +23,12 @@ jobs:
         run: npm install -g @google/clasp
 
       - name: Create clasprc.json
-        run: echo "${{ secrets.CLASPRC_JSON }}" > ~/.clasprc.json
+        run: |
+          echo "${{ secrets.CLASPRC_JSON }}" > ~/.clasprc.json
 
       - name: Push to Apps Script
         run: clasp push --force
 
       - name: Deploy Version
         run: clasp deploy --description "Auto-deploy from GitHub Actions"
+
