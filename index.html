@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    :root { --bg-body: #f0f2f5; --bg-card: #ffffff; --text-main: #333; --primary: #004a99; --border: #e0e0e0; --green: #2e7d32; --red: #d32f2f; }
+    [data-theme="dark"] { --bg-body: #121212; --bg-card: #1e1e1e; --text-main: #e0e0e0; --primary: #64b5f6; --border: #333; }
+    
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg-body); padding: 20px; color: var(--text-main); transition: 0.3s; }
+    .container { max-width: 1200px; margin: auto; }
+    .card { background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; border: 1px solid var(--border); }
+    
+    [data-theme="dark"] input[type="date"] { background: #ffffff !important; color: #000000 !important; }
+
+    /* KNIGHT RIDER LOADING */
+    .k-rider { width: 100%; height: 8px; background: #222; position: relative; overflow: hidden; border-radius: 4px; margin: 20px 0; display: none; }
+    .k-bar { width: 30%; height: 100%; background: #ff0000; position: absolute; box-shadow: 0 0 15px #ff0000; animation: kScan 1.2s infinite ease-in-out; }
+    @keyframes kScan { 0% { left: -30%; } 50% { left: 100%; } 100% { left: -30%; } }
+
+    /* TOOLBAR LAYOUT */
+    .toolbar { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+    .toolbar-left { display: flex; align-items: flex-end; gap: 20px; }
+    .toolbar-right { display: flex; align-items: flex-end; gap: 20px; text-align: center; }
+
+    /* ROUND BUTTONS */
+    .round-btn { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; border: 3px solid transparent; color: white; transition: 0.3s; font-size: 18px; user-select: none; }
+    .round-btn input { display: none; }
+    .round-btn:has(input:checked) { background: var(--green); border-color: #fff; transform: scale(1.05); }
+    .round-btn:has(input:not(:checked)) { background: var(--red); opacity: 0.5; }
+    .un-avatar { border: 3px dashed #999 !important; }
+    .group-btn { border-radius: 12px !important; background: #555 !important; }
+    .group-btn:has(input:checked) { background: var(--primary) !important; border-color: #fff; }
+
+    .btn-main { background: var(--primary); color: white; padding: 15px; width: 100%; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+    .btn-action { padding: 4px 10px; cursor: pointer; border-radius: 4px; border: 1px solid var(--border); font-size: 12px; font-weight: bold; background: var(--bg-card); color: var(--text-main); }
+
+    .grid-row { display: grid; grid-template-columns: 180px 150px 120px 1fr; gap: 10px; align-items: center; font-size: 13px; }
+    summary { cursor: pointer; padding: 10px; border-bottom: 1px solid var(--border); list-style: none; }
+    
+    .msg-full { padding: 15px; border-top: 1px solid var(--border); }
+    .btn-read-more { display: block; width: 100%; text-align: center; background: rgba(0,0,0,0.05); border: none; padding: 8px; font-size: 11px; cursor: pointer; color: var(--primary); font-weight: bold; border-radius: 4px; margin-top: 10px; }
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h2 style="margin:0;">🚀 SummyMail</h2>
+      <select onchange="changeTheme(this.value)" style="padding:5px; border-radius:5px;">
+        <option value="light">🔵 Light</option>
+        <option value="dark">🌑 Dark</option>
+      </select>
+    </div>
+    
+    <div class="card">
+      <div style="display:flex; gap:10px; margin-bottom:15px;"><input type="date" id="start"> <input type="date" id="end"></div>
+      
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div style="text-align:center;"><small>CONSULTANTS</small><br>
+            <div style="display:flex; gap:8px;">
+              <label class="round-btn un-avatar" title="Άγνωστα"><input type="checkbox" class="cf" value="⚠️ Unassigned" onchange="applyGlobal()">?</label>
+              <label class="round-btn" title="Thanos"><input type="checkbox" class="cf" value="Thanos" onchange="applyGlobal()">Θ</label>
+              <label class="round-btn" title="Tolis"><input type="checkbox" class="cf" value="Tolis" onchange="applyGlobal()">Τ</label>
+              <label class="round-btn" title="Nikos"><input type="checkbox" class="cf" value="Nikos" onchange="applyGlobal()">Ν</label>
+              <label class="round-btn" title="Thymios"><input type="checkbox" class="cf" value="Thymios" onchange="applyGlobal()">Θυ</label>
+            </div>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <div style="text-align:center;"><small>ΟΜΑΔΑ</small><br>
+            <div style="display:flex; gap:8px;">
+              <label class="round-btn group-btn" title="Consultant" data-active="false"><input type="radio" name="gM" value="cons" onchange="toggleGroup(this)">👤</label>
+              <label class="round-btn group-btn" title="Πελάτης" data-active="false"><input type="radio" name="gM" value="client" onchange="toggleGroup(this)">🏢</label>
+            </div>
+          </div>
+          <div style="text-align:center;"><small>ΤΑΞΙΝΟΜΗΣΗ</small><br>
+            <div style="display:flex; gap:8px;">
+              <label class="round-btn" title="Νεότερα"><input type="radio" name="sM" value="new" checked onchange="applyGlobal()">↓</label>
+              <label class="round-btn" title="Παλαιότερα"><input type="radio" name="sM" value="old" onchange="applyGlobal()">↑</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-main" onclick="fetchData()">Προβολή Αναφοράς</button>
+      <div id="kR" class="k-rider"><div class="k-bar"></div></div>
+    </div>
+
+    <div id="previewArea"></div>
+    <div class="card"><h4>📂 Ιστορικό</h4><div id="historyList"></div></div>
+  </div>
+
+  <script>
+    let rawData = null;
+    let historyFiles = [];
+
+    window.onload = function() { setT(); loadH(); };
+    function setT() { const d = new Date().toISOString().split('T')[0]; document.getElementById('start').value = d; document.getElementById('end').value = d; }
+    function changeTheme(t) { document.body.setAttribute('data-theme', t); }
+    
+    function toggleGroup(el) {
+      if (el.dataset.active === "true") {
+        el.querySelector('input').checked = false;
+        el.dataset.active = "false";
+      } else {
+        document.querySelectorAll('.group-btn').forEach(b => b.dataset.active = "false");
+        el.dataset.active = "true";
+      }
+      applyGlobal();
+    }
+
+    function fetchData() {
+      document.getElementById('kR').style.display = 'block';
+      const s = document.getElementById('start').value, e = document.getElementById('end').value;
+      google.script.run.withSuccessHandler(res => {
+        document.getElementById('kR').style.display = 'none';
+        rawData = res; applyGlobal();
+      }).generateQuickReport("", "", s, e);
+    }
+
+    function applyGlobal() { if(rawData) render(rawData); renderHistoryList(); }
+
+    function render(data) {
+      const gInput = document.querySelector('input[name="gM"]:checked');
+      const mode = gInput ? gInput.value : 'list';
+      const sortNew = document.querySelector('input[name="sM"]:checked').value === 'new';
+      const filters = Array.from(document.querySelectorAll('.cf:checked')).map(c => c.value);
+      
+      let filtered = (filters.length === 0) ? data : data.filter(t => filters.includes(t.consultant));
+      filtered.sort((a,b) => sortNew ? b.lastUpdate - a.lastUpdate : a.lastUpdate - b.lastUpdate);
+
+      let html = `<div class="card" id="finalReport"><h3>Αναφορά</h3>`;
+      if (mode === 'list') {
+        filtered.forEach(t => html += renderThread(t, sortNew));
+      } else {
+        const key = (mode === 'cons') ? 'consultant' : 'client';
+        const order = ["⚠️ Unassigned", "Thanos", "Tolis", "Nikos", "Thymios"];
+        let groups = {};
+        filtered.forEach(t => { if(!groups[t[key]]) groups[t[key]] = []; groups[t[key]].push(t); });
+        const sortedKeys = Object.keys(groups).sort((a,b) => {
+          if(mode === 'cons') return order.indexOf(a) - order.indexOf(b);
+          return a.localeCompare(b);
+        });
+        sortedKeys.forEach(k => {
+          html += `<details open style="margin-bottom:15px;"><summary style="background:var(--primary); color:white; padding:10px; border-radius:8px; font-weight:bold;">${k}</summary>`;
+          groups[k].forEach(t => html += renderThread(t, sortNew));
+          html += `</details>`;
+        });
+      }
+      html += `<button class="btn-main" style="background:var(--green);" onclick="save()">💾 Αποθήκευση</button></div>`;
+      document.getElementById('previewArea').innerHTML = html;
+    }
+
+    function renderThread(t, isN) {
+      let latest = t.messages[t.messages.length-1];
+      return `<details style="border-bottom:1px solid var(--border);"><summary><div class="grid-row">
+        <div style="font-weight:bold; color:var(--primary); overflow:hidden; text-overflow:ellipsis;">${t.client}</div><div>${latest.from}</div><div>${latest.timestamp}</div><div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.subject}</div>
+      </div></summary><div style="padding:15px; background:rgba(0,0,0,0.02);">
+        <div style="display:flex; gap:10px; margin-bottom:10px;"><button class="btn-action" onclick="this.nextElementSibling.style.display='block'">⚙️ Prompt</button><button class="btn-action" style="background:var(--accent); color:#000;" onclick="getAI('${t.id}', this)">✨ AI Ανάλυση</button></div>
+        <textarea style="width:100%; height:80px; display:none; margin-top:5px; border-radius:5px; border:1px solid #ccc; padding:10px;">Ανάλυση.</textarea><div class="ai-box"></div>
+        ${(isN ? [...t.messages].reverse() : t.messages).map(m => {
+          const lines = m.body.split('<br>');
+          let short = m.body, hasT = lines.length > 7;
+          if(hasT) short = lines.slice(0, 7).join('<br>');
+          return `<div class="msg-full">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div><b>${m.from}</b> <small>${m.timestamp} ${m.diff}</small></div>
+            <button class="btn-action" onclick="loadFull(this, '${m.id}')">🎨 Full Mail</button>
+          </div>
+          <br><div class="m-body">${short}</div>
+          ${hasT ? `<button class="btn-read-more" onclick="tgl(this, \`${m.body.replace(/`/g, '\\`')}\`, \`${short.replace(/`/g, '\\`')}\`)">⬇️ Show more</button>` : ''}
+          <div class="full-mail-view" style="display:none; margin-top:15px; border:1px solid #999; border-radius:6px; background:white; overflow:hidden;">
+             <div style="background:#f1f3f4; padding:5px; text-align:right;"><button style="background:#d32f2f; color:white; border:none; padding:5px 12px; cursor:pointer; border-radius:3px;" onclick="this.parentElement.parentElement.style.display='none'">❌</button></div>
+             <iframe style="width:100%; height:500px; border:none;"></iframe>
+          </div>
+          </div>`;
+        }).join('')}
+      </div></details>`;
+    }
+
+    function tgl(btn, f, s) { const b = btn.previousElementSibling; if(btn.innerText.includes("more")){ b.innerHTML = f; btn.innerText = "⬆️ Show less"; } else { b.innerHTML = s; btn.innerText = "⬇️ Show more"; } }
+    
+    function loadFull(btn, id) {
+      const v = btn.closest('.msg-full').querySelector('.full-mail-view');
+      btn.innerText = "⏳...";
+      google.script.run.withSuccessHandler(res => { 
+        btn.innerText = "🎨 Full Mail";
+        if (res.success) {
+          v.style.display = 'block';
+          const d = v.querySelector('iframe').contentWindow.document;
+          d.open(); d.write(res.body); d.close();
+        } else { alert("Σφάλμα: " + res.body); }
+      }).getFullEmailContent(id);
+    }
+
+    function getAI(id, btn) { const box = btn.parentElement.nextElementSibling.nextElementSibling, p = btn.parentElement.nextElementSibling.value; btn.innerText="⏳..."; google.script.run.withSuccessHandler(ai => { box.innerHTML = ai; box.style.display="block"; btn.innerText="✨ AI"; }).getAiSummary(id, p); }
+    function save() { google.script.run.withSuccessHandler(()=>alert("Σώθηκε!")).saveToDrive(document.getElementById('finalReport').innerHTML, "Report"); }
+    function loadH() { google.script.run.withSuccessHandler(files => { historyFiles = files; renderHistoryList(); }).getHistory(); }
+    function renderHistoryList() {
+      const isNewest = document.querySelector('input[name="sM"]:checked').value === 'new';
+      const sorted = [...historyFiles].sort((a,b) => isNewest ? (b.created - a.created) : (a.created - b.created));
+      document.getElementById('historyList').innerHTML = sorted.map(f => `<div class="history-item"><span>📄 ${f.name}</span> <button class="btn-restore" onclick="google.script.run.withSuccessHandler(res=>document.getElementById('previewArea').innerHTML=res.html).getReportContent('${f.id}')">📂</button></div>`).join('');
+    }
+  </script>
+</body>
+</html>
