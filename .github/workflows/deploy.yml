@@ -20,11 +20,11 @@ jobs:
       - name: Install clasp
         run: npm install -g @google/clasp
 
-      - name: Decode & Create clasprc.json
+      - name: Create clasprc.json (Safe Mode)
         env:
           CLASPRC_SECRET: ${{ secrets.CLASPRC_JSON }}
         run: |
-          echo "$CLASPRC_SECRET" | base64 -d > ~/.clasprc.json
+          node -e 'const fs = require("fs"); const os = require("os"); const path = require("path"); const file = path.join(os.homedir(), ".clasprc.json"); fs.writeFileSync(file, Buffer.from(process.env.CLASPRC_SECRET, "base64").toString("utf8"));'
 
       - name: Push to Apps Script
         run: clasp push --force
