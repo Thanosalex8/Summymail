@@ -1,5 +1,3 @@
-- name: Create clasprc.json
-        run: |
 name: Deploy Summymail to Apps Script
 
 on:
@@ -31,4 +29,3 @@ jobs:
 
       - name: Deploy Version
         run: clasp deploy --description "Auto-deploy from GitHub Actions"
-
