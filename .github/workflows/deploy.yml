@@ -1,4 +1,4 @@
-name: Deploy Summymail to Apps Script
+name: Debug Summymail Deploy
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  deploy:
+  debug-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -17,17 +17,39 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install clasp
-        run: npm install -g @google/clasp
+      - name: Install clasp and jq
+        run: |
+          npm install @google/clasp
+          sudo apt-get install -y jq
 
-      - name: Create clasprc.json (Safe Mode)
+      - name: Create clasprc.json (Debug Mode)
         env:
           CLASPRC_SECRET: ${{ secrets.CLASPRC_JSON }}
         run: |
-          node -e 'const fs = require("fs"); const os = require("os"); const path = require("path"); const file = path.join(os.homedir(), ".clasprc.json"); fs.writeFileSync(file, Buffer.from(process.env.CLASPRC_SECRET, "base64").toString("utf8"));'
+          # 1. Γράφουμε το αρχείο χρησιμοποιώντας Node.js για ασφάλεια
+          node -e 'const fs = require("fs"); const os = require("os"); const path = require("path"); const file = path.join(os.homedir(), ".clasprc.json"); try { fs.writeFileSync(file, Buffer.from(process.env.CLASPRC_SECRET, "base64").toString("utf8")); console.log("File created successfully at:", file); } catch (e) { console.error("Error creating file:", e); process.exit(1); }'
+          
+          # 2. ΕΛΕΓΧΟΣ: Υπάρχει το αρχείο; Τι μέγεθος έχει;
+          echo "--- FILE STATS ---"
+          ls -l ~/.clasprc.json
+          
+          # 3. ΕΛΕΓΧΟΣ: Είναι έγκυρο JSON; (Τυπώνει μόνο τα κλειδιά, ΟΧΙ τους κωδικούς)
+          echo "--- JSON VALIDITY CHECK ---"
+          if cat ~/.clasprc.json | jq empty; then
+            echo "JSON is valid."
+            cat ~/.clasprc.json | jq keys
+          else
+            echo "ERROR: File contains invalid JSON!"
+            # Αν είναι invalid, τυπώνουμε τα πρώτα 10 γράμματα για να δούμε αν είναι base64 junk
+            head -c 10 ~/.clasprc.json
+            exit 1
+          fi
+
+      - name: Check Clasp Login Status
+        run: npx clasp login --status
 
       - name: Push to Apps Script
-        run: clasp push --force
+        run: npx clasp push --force
 
       - name: Deploy Version
-        run: clasp deploy --description "Auto-deploy from GitHub Actions"
+        run: npx clasp deploy --description "Debug deploy"
