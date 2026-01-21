@@ -1,4 +1,4 @@
-name: Full Debug Deploy
+name: Final Victory Deploy
 
 on:
   push:
@@ -20,33 +20,20 @@ jobs:
       - name: Install clasp
         run: npm install -g @google/clasp
 
-      - name: Build Credentials & Diagnose
+      - name: Force Build Credentials
         env:
           REFRESH_TOKEN: ${{ secrets.CLASPRC_JSON }}
           CLIENT_ID: "1072944905499-vm2v2i5dvn0a0d2o4ca36i1vge8cvbn0.apps.googleusercontent.com"
           CLIENT_SECRET: "v6V3fKV_zWU7iw1DrpO1rknX"
         run: |
-          # 1. Φτιάχνουμε το αρχείο
-          echo "{\"tokens\":{\"default\":{\"client_id\":\"$CLIENT_ID\",\"client_secret\":\"$CLIENT_SECRET\",\"refresh_token\":\"$REFRESH_TOKEN\",\"type\":\"authorized_user\"}}}" > ~/.clasprc.json
+          # Δημιουργία πλήρους δομής με dummy access_token για να μην παραπονιέται το clasp
+          echo "{\"tokens\":{\"default\":{\"client_id\":\"$CLIENT_ID\",\"client_secret\":\"$CLIENT_SECRET\",\"refresh_token\":\"$REFRESH_TOKEN\",\"access_token\":\"dummy_token\",\"expiry_date\":1,\"type\":\"authorized_user\"}}}" > ~/.clasprc.json
           
-          # 2. LOG: Πού βρίσκεται το αρχείο;
-          echo "LOG: Checking file location..."
-          ls -la ~/.clasprc.json
-          
-          # 3. LOG: Είναι συνδεδεμένο το clasp;
-          echo "LOG: Checking clasp login status..."
+          echo "LOG: Credentials built. Testing connection..."
           clasp login --status
-          
-          # 4. LOG: Βλέπει το script ID;
-          echo "LOG: Checking script configuration..."
-          cat .clasp.json
 
       - name: Push to Apps Script
-        run: |
-          echo "LOG: Attempting push..."
-          clasp push --force
+        run: clasp push --force
 
       - name: Deploy Version
-        run: |
-          echo "LOG: Attempting deploy..."
-          clasp deploy --description "Debug Version"
+        run: clasp deploy --description "Success at last"
