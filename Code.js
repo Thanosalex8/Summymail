@@ -628,6 +628,14 @@ function aiAutomatedLoggerBatch(taskPackage, threadId, customer, consultant, isR
 
 
 function writeToBigQuery(data) {
+  // --- ΦΙΛΤΡΟ ΓΙΑ TASKS (ΠΡΟΣΘΗΚΗ) ---
+  // Αν το user_prompt περιέχει εντολή για tasks ή αν το data.tid είναι κενό, σταματάμε
+  if (data.userPrompt && (data.userPrompt.includes('task_name') || data.userPrompt.includes('TASKS'))) {
+      console.log("🚫 Skipping BQ log: Task action detected.");
+      return;
+  }
+  // -----------------------------------
+
   const projectId = 'gen-lang-client-0465952145'; 
   const datasetId = 'summy_logs';
   const tableId = 'chat_history';
@@ -641,37 +649,31 @@ function writeToBigQuery(data) {
     const sql = `
       INSERT INTO \`${projectId}.${datasetId}.${tableId}\` 
       (timestamp, threadId, subject, message_count, user_email, user_locale, model_name, user_prompt, aiResponse, total_context, prompt_tokens, output_tokens, total_tokens, latency_ms, finish_reason)
-      VALUES 
-      (
-        CURRENT_TIMESTAMP(), 
-        '${String(data.tid)}', 
-        '${sqlSafe(data.subject)}', 
-        ${Number(data.msgCount || 0)}, 
-        '${Session.getActiveUser().getEmail() || "system@datalink.gr"}', 
-        '${Session.getActiveUserLocale() || "el"}', 
-        '${String(data.model || "gemini-2.0-flash")}', 
-        '${sqlSafe(data.userPrompt)}', 
-        '${sqlSafe(data.aiResponse)}', 
-        '${sqlSafe(data.totalContext)}', 
-        ${Number(data.pTokens || 0)}, 
-        ${Number(data.oTokens || 0)}, 
-        ${Number(data.totalTokens || data.tTokens || 0)}, 
-        ${Number(data.latency || 0)}, 
+      VALUES (
+        CURRENT_TIMESTAMP(),
+        '${String(data.tid)}',
+        '${sqlSafe(data.subject)}',
+        ${Number(data.msgCount || 0)},
+        '${Session.getActiveUser().getEmail() || "system@datalink.gr"}',
+        '${Session.getActiveUserLocale() || "el"}',
+        '${String(data.model || "gemini-2.0-flash")}',
+        '${sqlSafe(data.userPrompt)}',
+        '${sqlSafe(data.aiResponse)}',
+        '${sqlSafe(data.totalContext)}',
+        ${Number(data.pTokens || 0)},
+        ${Number(data.oTokens || 0)},
+        ${Number(data.totalTokens || data.tTokens || 0)},
+        ${Number(data.latency || 0)},
         '${String(data.reason || "STOP")}'
       )
     `;
-
-    // ΑΥΤΟ ΕΙΝΑΙ ΤΟ ΚΛΕΙΔΙ: Εκτυπώνει το SQL στο Executions Log
-    console.log("DEBUG SQL START:\n" + sql + "\nDEBUG SQL END");
-
+    
     BigQuery.Jobs.query({ query: sql, useLegacySql: false }, projectId);
     console.log("🚀 SQL Log: Attempted write for thread " + data.tid);
-
   } catch (e) {
     console.error("❌ BigQuery Error: " + e.toString());
   }
 }
-
 
 
 function getImportProgress() {
