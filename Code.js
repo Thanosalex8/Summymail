@@ -4,7 +4,7 @@
  * STRICT MAINTENANCE MODE: ON
  */
 
-const API_KEY = "AIzaSyBimqoHZ2pK7Hcv0_UR4dOSxPcEGZ9UIMw"; 
+const API_KEY = "AIzaSyAs2tSNcgA8AqQrdQreZQ62XybVVp1cKYI"; 
 const FOLDER_ID = "1xBKm0U79cnWQj3oTsNVz63HH65fgv-my"; 
 const SCRIPT_VERSION = "27/01 17:00"; 
 
