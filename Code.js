@@ -2,9 +2,6 @@
  * SummyMail Pro - Backend (Code.gs)
  * Version: 27/01/2026
  * STRICT MAINTENANCE MODE: ON
- * 
- * τεστ αριθμός να δω αν το βλέπεις ο αροθμός ειναι 988888888
- * 
  */
 
 const API_KEY = "AIzaSyBimqoHZ2pK7Hcv0_UR4dOSxPcEGZ9UIMw"; 
@@ -474,91 +471,105 @@ function getBaseSystemPrompt() {
 - Μην χρησιμοποιείς \`\`\`html tags.`;
 }
 
-
 function getAiChatResponse(threadId, chatHistory, customPrompt, chosenModel, isRecreate) {
   const startTime = Date.now();
   const projectId = 'gen-lang-client-0465952145';
-  const tidStr = String(threadId); // Διασφάλιση ότι το ID είναι string για το SQL
-
+  
   try {
-    // 1. Βρίσκουμε ποια μηνύματα έχουν ήδη γίνει tasks
-    const loggedRes = BigQuery.Jobs.query({ 
-      query: `SELECT DISTINCT message_id FROM \`${projectId}.summy_logs.task_lines\` WHERE thread_id = '${tidStr}'`,
-      useLegacySql: false 
-    }, projectId);
-    const loggedIds = loggedRes.rows ? loggedRes.rows.map(r => String(r.f[0].v)) : [];
-
-    // 2. Ανάκτηση των Emails - Απλοποιημένο SQL για να μη «σκαλώνει»
-    const sql = `
-      SELECT from_info, internal_date, cleaned_body, customer_name, consultant_name, subject, message_id
-      FROM \`${projectId}.summy_logs.support_mails\`
-      WHERE thread_id = '${tidStr}' 
-         OR REGEXP_CONTAINS(other_threads, r'${tidStr}')
-      ORDER BY internal_date ASC
-    `;
-    
-    const queryResults = BigQuery.Jobs.query({ query: sql, useLegacySql: false }, projectId);
+    // 1. Φέρνουμε τα μηνύματα από BQ
+    const sqlMails = `SELECT from_info, cleaned_body, customer_name, consultant_name, subject, message_id 
+                      FROM \`${projectId}.summy_logs.support_mails\` 
+                      WHERE thread_id = '${threadId}' OR REGEXP_CONTAINS(other_threads, r'${threadId}')`;
+    const mailRes = BigQuery.Jobs.query({ query: sqlMails, useLegacySql: false }, projectId);
     
     let emailContext = "";
-    let customer = "Unknown", consultant = "Unknown", subject = "Unknown";
+    let cust = "Unknown", cons = "Unknown", subj = "Unknown";
 
-    if (queryResults.rows && queryResults.rows.length > 0) {
-      customer = queryResults.rows[0].f[3].v || "Unknown";
-      consultant = queryResults.rows[0].f[4].v || "Unknown";
-      subject = queryResults.rows[0].f[5].v || "Unknown";
-
-      queryResults.rows.forEach((row, idx) => {
-        const msgId = String(row.f[6].v);
-        const isLogged = loggedIds.includes(msgId);
-        
-        // Skip label μόνο αν είμαστε σε task mode και το mail είναι ήδη καταχωρημένο
-        const isTaskMode = (customPrompt.includes('task_name') || isRecreate);
-        const label = (isLogged && isTaskMode && !isRecreate) ? " (ALREADY LOGGED - SKIP)" : "";
-        
-        emailContext += `MSG [${idx + 1}]${label}:\nFROM: ${row.f[0].v}\nBODY: ${row.f[2].v}\n---\n`;
+    if (mailRes.rows && mailRes.rows.length > 0) {
+      cust = mailRes.rows[0].f[2].v || "Unknown";
+      cons = mailRes.rows[0].f[3].v || "Unknown";
+      subj = mailRes.rows[0].f[4].v || "Unknown";
+      mailRes.rows.forEach((r, i) => {
+        emailContext += `MSG [${i+1}]:\nFROM: ${r.f[0].v}\nBODY: ${r.f[1].v}\n---\n`;
       });
-      console.log(`Found ${queryResults.rows.length} messages for Thread ${tidStr}`);
-    } else {
-      console.warn(`No messages found in BQ for Thread ${tidStr}. Check if data is synced.`);
-      return "⚠️ Δεν βρέθηκαν τα emails στη BigQuery. Πατήστε 'Αποθήκευση σε BQ' ή ελέγξτε το Thread ID.";
+      console.log("✅ Found " + mailRes.rows.length + " messages. Proceeding to AI...");
     }
 
-    // 3. Χτίσιμο του System Prompt
-    const tasksContext = isRecreate ? "NO ACTIVE TASKS" : getTasksForAIContext(tidStr, customer);
-    let systemText = `Πελάτης: ${customer}\nΣύμβουλος: ${consultant}\n\n`;
-    
-    // Αντικατάσταση των placeholders ή απλή προσθήκη στο τέλος
-    if (customPrompt.includes('{DATA}')) {
-      systemText += customPrompt.replace('{DATA}', emailContext).replace('{CONTEXT}', tasksContext);
-    } else {
-      systemText += customPrompt + `\n\nCONTEXT:\n${tasksContext}\n\nEMAILS:\n${emailContext}`;
-    }
-
-    // 4. Κλήση Gemini
-    const modelName = chosenModel || "gemini-2.0-flash"; 
+    // 2. Κλήση Gemini
+    const systemText = `Πελάτης: ${cust}\nΣύμβουλος: ${cons}\n\n${customPrompt}\n\nDATA:\n${emailContext}`;
+    const modelName = chosenModel || "gemini-2.0-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`;
     
-    const res = UrlFetchApp.fetch(url, {
+    const response = UrlFetchApp.fetch(url, {
       method: "post", contentType: "application/json",
-      payload: JSON.stringify({ 
-        system_instruction: { parts: [{ text: systemText }] }, 
-        contents: chatHistory 
-      }),
+      payload: JSON.stringify({ system_instruction: { parts: [{ text: systemText }] }, contents: chatHistory }),
       muteHttpExceptions: true
     });
     
-    const json = JSON.parse(res.getContentText());
+    const json = JSON.parse(response.getContentText());
     if (json.candidates && json.candidates[0]) {
-      return json.candidates[0].content.parts[0].text.replace(/```json|```html|```/g, '').trim();
+      const aiText = json.candidates[0].content.parts[0].text.replace(/```json|```html|```/g, '').trim();
+      const usage = json.usageMetadata || {};
+
+      // 3. ΕΓΓΡΑΦΗ ΣΤΗ ΒΑΣΗ (Εδώ είναι το κρίσιμο σημείο)
+      writeToBigQuery({
+        tid: threadId,
+        subject: subj,
+        msgCount: mailRes.rows ? mailRes.rows.length : 0,
+        model: modelName,
+        userPrompt: chatHistory.length > 0 ? chatHistory[chatHistory.length-1].parts[0].text : "Initial",
+        aiResponse: aiText,
+        totalContext: systemText,
+        pTokens: usage.promptTokenCount || 0,
+        oTokens: usage.candidatesTokenCount || 0,
+        tTokens: usage.totalTokenCount || 0,
+        latency: Date.now() - startTime,
+        reason: json.candidates[0].finishReason || "STOP",
+        isRecreate: isRecreate
+      });
+
+      return aiText;
     }
-    
-    return "⚠️ Το API του Gemini δεν επέστρεψε αποτέλεσμα.";
+    return "⚠️ AI Error: " + response.getContentText();
 
   } catch (e) {
-    console.error("Critical Error in getAiChatResponse:", e.message);
+    console.error("❌ CRITICAL ERROR: " + e.message);
     return "⚠️ Σφάλμα Server: " + e.message;
   }
 }
+
+function writeToBigQuery(data) {
+  const projectId = 'gen-lang-client-0465952145';
+  const datasetId = 'summy_logs';
+  const tableId = 'chat_history';
+
+  // Καθαρισμός για SQL
+  const safe = (s) => String(s || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+
+  try {
+    if (data.isRecreate) {
+      const delSql = `DELETE FROM \`${projectId}.${datasetId}.${tableId}\` WHERE threadId = '${data.tid}'`;
+      BigQuery.Jobs.query({ query: delSql, useLegacySql: false }, projectId);
+    }
+
+    const sql = `INSERT INTO \`${projectId}.${datasetId}.${tableId}\` 
+      (timestamp, threadId, subject, message_count, user_email, user_locale, model_name, user_prompt, aiResponse, total_context, prompt_tokens, output_tokens, total_tokens, latency_ms, finish_reason)
+      VALUES (
+        CURRENT_TIMESTAMP(), '${data.tid}', '${safe(data.subject)}', ${Number(data.msgCount)}, 
+        '${Session.getActiveUser().getEmail()}', '${Session.getActiveUserLocale()}', '${data.model}', 
+        '${safe(data.userPrompt)}', '${safe(data.aiResponse)}', '${safe(data.totalContext)}', 
+        ${data.pTokens}, ${data.oTokens}, ${data.tTokens}, ${data.latency}, '${data.reason}'
+      )`;
+
+    BigQuery.Jobs.query({ query: sql, useLegacySql: false }, projectId);
+    console.log("🚀 SQL SUCCESS: Data written to BQ for " + data.tid);
+  } catch (e) {
+    console.error("❌ BQ WRITE FAIL: " + e.message);
+  }
+}
+
+
+
 
 
 function aiAutomatedLoggerBatch(taskPackage, threadId, customer, consultant, isRecreate) {
@@ -627,53 +638,6 @@ function aiAutomatedLoggerBatch(taskPackage, threadId, customer, consultant, isR
 }
 
 
-function writeToBigQuery(data) {
-  // --- ΦΙΛΤΡΟ ΜΟΝΟ ΓΙΑ CHAT HISTORY ---
-  // Αν το prompt αφορά tasks, σταματάμε την εγγραφή ΜΟΝΟ για το chat history
-  if (data.userPrompt && (data.userPrompt.includes('task_name') || data.userPrompt.includes('TASKS'))) {
-      console.log("🚫 Skipping Chat History log: Task action detected.");
-      return;
-  }
-  // ------------------------------------
-
-  const projectId = 'gen-lang-client-0465952145'; 
-  const datasetId = 'summy_logs';
-  const tableId = 'chat_history';
-
-  const sqlSafe = (str) => {
-    if (!str) return "";
-    return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
-  };
-
-  try {
-    const sql = `
-      INSERT INTO \`${projectId}.${datasetId}.${tableId}\` 
-      (timestamp, threadId, subject, message_count, user_email, user_locale, model_name, user_prompt, aiResponse, total_context, prompt_tokens, output_tokens, total_tokens, latency_ms, finish_reason)
-      VALUES (
-        CURRENT_TIMESTAMP(),
-        '${String(data.tid)}',
-        '${sqlSafe(data.subject)}',
-        ${Number(data.msgCount || 0)},
-        '${Session.getActiveUser().getEmail() || "system@datalink.gr"}',
-        '${Session.getActiveUserLocale() || "el"}',
-        '${String(data.model || "gemini-2.0-flash")}',
-        '${sqlSafe(data.userPrompt)}',
-        '${sqlSafe(data.aiResponse)}',
-        '${sqlSafe(data.totalContext)}',
-        ${Number(data.pTokens || 0)},
-        ${Number(data.oTokens || 0)},
-        ${Number(data.totalTokens || data.tTokens || 0)},
-        ${Number(data.latency || 0)},
-        '${String(data.reason || "STOP")}'
-      )
-    `;
-    
-    BigQuery.Jobs.query({ query: sql, useLegacySql: false }, projectId);
-    console.log("🚀 SQL Log: Chat history skipped for tasks, but logic continues.");
-  } catch (e) {
-    console.error("❌ BigQuery Error: " + e.toString());
-  }
-}
 
 
 function getImportProgress() {
@@ -1019,29 +983,45 @@ function scheduledDailySync() {
 
 function fetchChatHistoryFromBQ(threadId) {
   const projectId = 'gen-lang-client-0465952145';
+  
+  // Καθαρισμός του threadId για να μην υπάρχουν κρυφοί χαρακτήρες
+  const cleanId = String(threadId).trim();
+
+  // Χρησιμοποιούμε TRIM() και στην SQL για να είμαστε σίγουροι ότι η βάση θα απαντήσει
   const sql = `
     SELECT user_prompt, aiResponse
     FROM \`gen-lang-client-0465952145.summy_logs.chat_history\`
-    WHERE threadId = '${threadId}'
+    WHERE TRIM(threadId) = '${cleanId}'
     ORDER BY timestamp ASC
   `;
 
   try {
     const queryResults = BigQuery.Jobs.query({ query: sql, useLegacySql: false }, projectId);
-    if (!queryResults.rows) return [];
+    
+    // Αν η BQ δεν βρει τίποτα, επιστρέφουμε άδειο πίνακα αμέσως
+    if (!queryResults.rows || queryResults.rows.length === 0) {
+      console.log("ℹ️ BQ Info: No history found for thread: " + cleanId);
+      return [];
+    }
     
     let history = [];
     queryResults.rows.forEach(row => {
       const uPrompt = row.f[0].v;
       const aiResp = row.f[1].v;
-      // Ανακατασκευάζει το ιστορικό ακριβώς όπως το περιμένει το API του Gemini
-      if (uPrompt) history.push({ role: "user", parts: [{ text: uPrompt }] });
-      if (aiResp) history.push({ role: "model", parts: [{ text: aiResp }] });
+      
+      // Ανακατασκευή ιστορικού για το Gemini API
+      if (uPrompt && uPrompt !== "null") {
+        history.push({ role: "user", parts: [{ text: String(uPrompt) }] });
+      }
+      if (aiResp && aiResp !== "null") {
+        history.push({ role: "model", parts: [{ text: String(aiResp) }] });
+      }
     });
     
+    console.log("✅ BQ Success: Loaded " + history.length + " messages for refresh.");
     return history;
   } catch (e) {
-    console.error("BQ Chat Fetch Error: " + e.toString());
+    console.error("❌ BQ Chat Fetch Error: " + e.toString());
     return [];
   }
 }

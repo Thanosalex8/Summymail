@@ -8,15 +8,11 @@
 
 
 
-
-
-
-
 /* New Version 10-02-2026 14:30 - Layout Surgery */
 /* New Version 10-02-2026 15:45 - No Jump / No Bounce */
 html, body { 
-  height:      100vh !important; 
-  width:       100vw !important;
+  height: 100vh !important; 
+  width: 100vw !important;
   margin: 0 !important; 
   padding: 0 !important;
   overflow: hidden !important; /* Σκοτώνει το scroll της σελίδας */
@@ -882,45 +878,53 @@ function copyJsonToClipboard(elementId) {
 }
 
 function renderChatUI(tid, isAppend = false) {
-  const thread = rawData.find(t => String(t.id) === String(tid));
+  const cleanTid = String(tid).trim();
+  const thread = rawData.find(t => String(t.id).trim() === cleanTid);
   const globalChat = document.getElementById('global-ai-content');
   
-  // 1. ΑΝ ΕΙΝΑΙ Η ΠΡΩΤΗ ΦΟΡΑ (όχι append), ΧΤΙΖΟΥΜΕ ΤΟ ΣΚΕΛΕΤΟ
+  if (!thread) return;
+
+  // ΕΔΩ ΕΙΝΑΙ Η ΔΙΟΡΘΩΣΗ: Αν δεν έχει ιστορικό, ζήτα το από τη BigQuery
+  if (!isAppend && (thread.chatHistory === undefined || thread.chatHistory === null)) {
+    globalChat.innerHTML = '<div style="padding:40px; text-align:center; color:#888;"><p>⏳ Ανάκτηση ανάλυσης από BigQuery...</p></div>';
+    
+    google.script.run
+      .withSuccessHandler(history => {
+        thread.chatHistory = history || []; // Γέμισε τη μνήμη
+        renderChatUI(tid); // Ξανατρέξε για να σχεδιάσεις
+      })
+      .fetchChatHistoryFromBQ(cleanTid);
+    return; // Σταμάτα εδώ μέχρι να έρθει η απάντηση
+  }
+
+  // Σχεδιασμός του Header (Πελάτης & Tasks)
   if (!isAppend) {
     globalChat.innerHTML = `
       <div id="side-header-fixed" style="padding:15px; border-bottom:1px solid var(--border); background:var(--bg-card); position:sticky; top:0; z-index:100;">
         <div style="font-size:14px; font-weight:bold; color:var(--primary); margin-bottom:10px;">🏠 ${thread.client}</div>
-        <div id="side-tasks-container">
-          <p style="color:#888; font-size:12px; text-align:center;">📊 Φόρτωση Tasks...</p>
-        </div>
+        <div id="side-tasks-container"><p style="color:#888; font-size:12px; text-align:center;">📊 Φόρτωση Tasks...</p></div>
         <div id="task-actions" style="display:flex; align-items:center; gap:8px; margin-top:10px;"></div>
       </div>
       <div id="side-chat-stream" style="padding:15px;"></div>`;
     
-    // Φορτώνουμε τα tasks μόνο όταν χτίζεται το κέλυφος
-    syncTasksOnly(tid, thread);
+    syncTasksOnly(tid, thread); // Αυτό δουλεύει ήδη
   }
 
-  // 2. ΖΩΓΡΑΦΙΚΗ ΤΟΥ CHAT (APPEND LOGIC)
+  // Σχεδιασμός των μηνυμάτων του Chat
   const chatStream = document.getElementById('side-chat-stream');
   if (chatStream && thread.chatHistory) {
     chatStream.innerHTML = thread.chatHistory.map(m => {
       let content = m.parts[0].text;
-      // Καθαρίζουμε το JSON από το κείμενο της συζήτησης για να μη φαίνεται άσχημο
       let cleanText = content.replace(/```json[\s\S]*?```/g, "").trim();
-      
       const roleClass = m.role === 'user' ? 'chat-user' : 'chat-ai';
-      const roleName = m.role === 'user' ? 'ΕΣΥ' : 'AI ASSISTANT';
-      
       return `
         <div class="chat-bubble ${roleClass}">
-          <span class="chat-role">${roleName}</span>
-          ${cleanText || "Η ανάλυση ολοκληρώθηκε."}
+          <span class="chat-role">${m.role === 'user' ? 'ΕΣΥ' : 'AI ASSISTANT'}</span>
+          ${cleanText || "..."}
         </div>`;
     }).join('');
   }
 
-  // Πάντα scroll στο τέλος της συζήτησης
   globalChat.scrollTop = globalChat.scrollHeight;
 }
 
