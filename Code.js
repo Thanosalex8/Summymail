@@ -628,13 +628,13 @@ function aiAutomatedLoggerBatch(taskPackage, threadId, customer, consultant, isR
 
 
 function writeToBigQuery(data) {
-  // --- ΦΙΛΤΡΟ ΓΙΑ TASKS (ΠΡΟΣΘΗΚΗ) ---
-  // Αν το user_prompt περιέχει εντολή για tasks ή αν το data.tid είναι κενό, σταματάμε
+  // --- ΦΙΛΤΡΟ ΜΟΝΟ ΓΙΑ CHAT HISTORY ---
+  // Αν το prompt αφορά tasks, σταματάμε την εγγραφή ΜΟΝΟ για το chat history
   if (data.userPrompt && (data.userPrompt.includes('task_name') || data.userPrompt.includes('TASKS'))) {
-      console.log("🚫 Skipping BQ log: Task action detected.");
+      console.log("🚫 Skipping Chat History log: Task action detected.");
       return;
   }
-  // -----------------------------------
+  // ------------------------------------
 
   const projectId = 'gen-lang-client-0465952145'; 
   const datasetId = 'summy_logs';
@@ -669,7 +669,7 @@ function writeToBigQuery(data) {
     `;
     
     BigQuery.Jobs.query({ query: sql, useLegacySql: false }, projectId);
-    console.log("🚀 SQL Log: Attempted write for thread " + data.tid);
+    console.log("🚀 SQL Log: Chat history skipped for tasks, but logic continues.");
   } catch (e) {
     console.error("❌ BigQuery Error: " + e.toString());
   }
