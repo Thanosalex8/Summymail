@@ -2,6 +2,9 @@
  * SummyMail Pro - Backend (Code.gs)
  * Version: 27/01/2026
  * STRICT MAINTENANCE MODE: ON
+ * 
+ * τεστ αριθμός να δω αν το βλέπεις ο αροθμός ειναι 88888888
+ * 
  */
 
 const API_KEY = "AIzaSyBimqoHZ2pK7Hcv0_UR4dOSxPcEGZ9UIMw"; 
