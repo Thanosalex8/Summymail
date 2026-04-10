@@ -3,205 +3,1542 @@
 <head>
   <base target="_top">
   <style>
-    :root { --bg-body: #f0f2f5; --bg-card: #ffffff; --text-main: #333; --primary: #004a99; --border: #e0e0e0; --green: #2e7d32; --red: #d32f2f; }
+    :root { --bg-body: #f0f2f5; --bg-card: #ffffff; --text-main: #333; --primary: #004a99; --border: #e0e0e0; --green: #2e7d32; --red: #d32f2f; --accent: #ffc107; }
     [data-theme="dark"] { --bg-body: #121212; --bg-card: #1e1e1e; --text-main: #e0e0e0; --primary: #64b5f6; --border: #333; }
-    
-    body { font-family: 'Segoe UI', sans-serif; background: var(--bg-body); padding: 20px; color: var(--text-main); transition: 0.3s; }
-    .container { max-width: 1200px; margin: auto; }
-    .card { background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; border: 1px solid var(--border); }
-    
-    [data-theme="dark"] input[type="date"] { background: #ffffff !important; color: #000000 !important; }
 
-    /* KNIGHT RIDER LOADING */
+
+
+/* New Version 10-02-2026 14:30 - Layout Surgery */
+/* New Version 10-02-2026 15:45 - No Jump / No Bounce */
+html, body { 
+  height: 100vh !important; 
+  width: 100vw !important;
+  margin: 0 !important; 
+  padding: 0 !important;
+  overflow: hidden !important; /* Σκοτώνει το scroll της σελίδας */
+  overscroll-behavior: none !important; /* Απαγορεύει το "bounce" */
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+padding: 0 !important; 
+}
+
+
+
+/* Η μπάρα σου - Σκοτεινή και σταθερή */
+.main-header {
+  position: fixed !important; /* Κλειδώνει πάνω στην οθόνη */
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 60px !important;
+  margin: 0 !important; /* Εξαφανίζει το κενό πάνω */
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+
+/* Το container που κρατάει τα πάντα */
+.main-dashboard {
+  display: flex !important;
+  width: 100% !important;
+  height: calc(100vh - 65px) !important; /* Ύψος οθόνης μείον το header */
+  overflow: hidden !important;
+  position: relative;
+}
+
+/* Αριστερή στήλη: Σκρολάρει μόνο αυτή */
+/* New Version 10-02-2026 16:15 - Absolute Sticky Logic */
+.emails-column {
+  flex: 0 0 70%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 0 15px 15px 15px !important; /* ΜΗΔΕΝ padding πάνω για να κολλήσει η μπάρα */
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+  min-width: 0 !important; /* ΑΥΤΟ ΕΙΝΑΙ ΤΟ ΚΛΕΙΔΙ */
+  max-width: 70% !important; /* Επιβολή ορίου για να μην "σπρώχνει" το AI */
+}
+
+.list-header {
+  position: -webkit-sticky; 
+  position: sticky !important;
+  top: 0 !important; /* Κολλάει ακριβώς στην αρχή της στήλης */
+  z-index: 1500 !important; /* Πάνω από τα πάντα */
+  background: var(--primary) !important;
+  color: white;
+  padding: 12px 10px;
+  border-radius: 0; /* Flat πάνω μέρος για να μην έχει κενά στις γωνίες */
+  margin-bottom: 2px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* New Version 10-02-2026 15:20 - Button Visibility Fix */
+.ai-sidebar {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column; /* Στοιβάζει περιεχόμενο πάνω και card κάτω */
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  overflow: hidden; /* Κλειδώνει το εξωτερικό πλαίσιο */
+  min-width: 320px; /* Απαγορεύει στην μπάρα να εξαφανιστεί */
+  flex-shrink: 0;   /* Απαγορεύει στο flexbox να τη "ζουλήξει" */
+
+}
+
+#global-ai-content {
+  flex: 1; /* Παίρνει όλο τον διαθέσιμο χώρο */
+  overflow-y: auto; /* Σκρολάρει μόνο αυτό το κομμάτι */
+  padding: 15px;
+  scrollbar-width: none;
+  display: block !important;
+}
+
+.ai-sidebar > .card:last-child {
+  margin: 0;
+  flex-shrink: 0; /* Απαγορεύει στο κουμπί να μικρύνει ή να εξαφανιστεί */
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid var(--border);
+  padding: 15px;
+  background: var(--bg-card);
+}
+
+
+/* New Version 07-02-2026 03:10 */
+.prompt-menu {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 100%;
+  background: white;
+  border: 1px solid var(--border);
+  box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+  z-index: 3000;
+  border-radius: 8px 8px 0 0;
+}
+.prompt-item {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  font-size: 13px;
+}
+.prompt-item:hover { background: #f5f5f5; }
+.prompt-item.custom { font-weight: bold; color: var(--primary); border-bottom: 2px solid var(--primary); }
+
+#customQuestionModal {
+  display: none;
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 350px;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  z-index: 4000;
+}
+
+
+
+
+/* Σπρώχνουμε το υπόλοιπο περιεχόμενο 70px κάτω για να μη χάνεται */
+#mainContainer { padding-top: 60px !important; height: 100vh; box-sizing: border-box; }
+
+
+
+   .container { max-width: 100%; margin: 0; padding: 0 !important; }
+    .card { background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; border: 1px solid var(--border); }
     .k-rider { width: 100%; height: 8px; background: #222; position: relative; overflow: hidden; border-radius: 4px; margin: 20px 0; display: none; }
     .k-bar { width: 30%; height: 100%; background: #ff0000; position: absolute; box-shadow: 0 0 15px #ff0000; animation: kScan 1.2s infinite ease-in-out; }
     @keyframes kScan { 0% { left: -30%; } 50% { left: 100%; } 100% { left: -30%; } }
-
-    /* TOOLBAR LAYOUT */
     .toolbar { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
-    .toolbar-left { display: flex; align-items: flex-end; gap: 20px; }
-    .toolbar-right { display: flex; align-items: flex-end; gap: 20px; text-align: center; }
-
-    /* ROUND BUTTONS */
     .round-btn { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; border: 3px solid transparent; color: white; transition: 0.3s; font-size: 18px; user-select: none; }
     .round-btn input { display: none; }
     .round-btn:has(input:checked) { background: var(--green); border-color: #fff; transform: scale(1.05); }
     .round-btn:has(input:not(:checked)) { background: var(--red); opacity: 0.5; }
-    .un-avatar { border: 3px dashed #999 !important; }
     .group-btn { border-radius: 12px !important; background: #555 !important; }
     .group-btn:has(input:checked) { background: var(--primary) !important; border-color: #fff; }
-
-    .btn-main { background: var(--primary); color: white; padding: 15px; width: 100%; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+    .btn-main { background: var(--primary); color: white; padding: 15px; width: 100%; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
     .btn-action { padding: 4px 10px; cursor: pointer; border-radius: 4px; border: 1px solid var(--border); font-size: 12px; font-weight: bold; background: var(--bg-card); color: var(--text-main); }
+   /* New Version time stamp : 2026-02-02 15:00 */
 
-    .grid-row { display: grid; grid-template-columns: 180px 150px 120px 1fr; gap: 10px; align-items: center; font-size: 13px; }
-    summary { cursor: pointer; padding: 10px; border-bottom: 1px solid var(--border); list-style: none; }
+   .grid-row { 
+  display: grid; 
+  grid-template-columns: 40px 180px 130px 140px 70px 1fr; /* Προστέθηκε το 40px */
+  gap: 10px; 
+  align-items: center; 
+  font-size: 13px; 
+}
+
+
+    /* LOGIN CSS */
+    #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .login-box { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; width: 320px; }
+    .login-box input[type="email"], .login-box input[type="password"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+    .remember-me { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 10px 0; color: #555; cursor: pointer; }
+
+    /* STICKY STYLES */
+/* New Version time stamp : 2026-02-05 09:50 
+   Status: STICKY LIST HEADER FIX */
+
+
+   
+    summary { cursor: pointer; padding: 12px 10px; border-bottom: 2px solid #ccc; list-style: none; position: sticky; top: 38px; background: #e3f2fd; z-index: 1050; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid var(--primary); color: #0d47a1; }
+    summary:hover { background: #bbdefb; }
+    .tab-bar { display: flex; background: #eee; gap: 2px; overflow-x: auto; position: sticky; top: 75px; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-bottom: 1px solid var(--border); }
+    .msg-header { position: sticky; top: 38px; background: #f5f5f5; z-index: 900; padding: 10px 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: flex-start; align-items: center; gap: 15px; border-radius: 8px 8px 0 0; }
+    .tabs-container { margin-top: 0; border: 1px solid var(--border); border-radius: 0 0 8px 8px; overflow: visible; background: rgba(0,0,0,0.02); }
+    .tab-btn { padding: 10px 20px; border: none; background: #ddd; cursor: pointer; font-weight: bold; font-size: 12px; white-space: nowrap; }
+    .tab-btn.active { background: var(--bg-card); color: var(--primary); border-bottom: 2px solid var(--primary); }
+    .tab-content { padding: 15px; display: none; }
+    .tab-content.active { display: block; }
+    .msg-full { margin-bottom: 25px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23); }
+    .history-card { position: relative; padding-top: 0 !important; }
+    .history-header { position: sticky; top: 0; background: var(--primary); color: white; padding: 12px 20px; margin: 0 -20px 15px -20px; border-radius: 12px 12px 0 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .history-count { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+
+    /* ADDED: SETTINGS DROPDOWN & CHAT */
+    .settings-dropdown { position: relative; display: inline-block; }
+    #settingsMenu { display:none; position:absolute; right:0; top:35px; background:var(--bg-card); border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:8px; width:200px; z-index:2000; overflow:hidden; }
+    .menu-item { padding:12px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px; display:flex; gap:10px; align-items:center; }
+    .menu-item:hover { background:rgba(0,0,0,0.05); }
+    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
     
-    .msg-full { padding: 15px; border-top: 1px solid var(--border); }
-    .btn-read-more { display: block; width: 100%; text-align: center; background: rgba(0,0,0,0.05); border: none; padding: 8px; font-size: 11px; cursor: pointer; color: var(--primary); font-weight: bold; border-radius: 4px; margin-top: 10px; }
-    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; font-size: 13px; }
-  </style>
+    .chat-container { padding: 10px; background: white; border: 1px solid var(--border); border-radius: 8px; max-height: 400px; overflow-y: auto; }
+    .chat-bubble { margin-bottom: 15px; padding: 12px; border-radius: 8px; line-height: 1.5; font-size: 14px; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .chat-user { background: #e3f2fd; border-left: 5px solid var(--primary); margin-left: 20px; }
+    .chat-ai { background: #f5f5f5; border-left: 5px solid var(--green); margin-right: 20px; }
+    .chat-role { font-weight: bold; font-size: 11px; margin-bottom: 5px; display: block; color: #555; }
+  .att-chip {
+    display: inline-block;
+    background: #f1f3f4;
+    border: 1px solid #dadce0;
+    border-radius: 12px;
+    padding: 4px 12px;
+    margin: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.att-chip:hover { background: #e8eaed; }
+
+.att-chip {
+    display: inline-block;
+    background: #f1f3f4;
+    border: 1px solid #dadce0;
+    border-radius: 12px;
+    padding: 6px 14px;
+    margin: 6px 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #3c4043;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.att-chip:hover { 
+    background: #e8eaed; 
+}
+.loading-status {
+    color: #d32f2f;
+    font-weight: bold;
+}
+
+/* New Version time stamp : 2026-02-02 17:30 */
+.full-mail-view { 
+  display:none; 
+  margin:10px; 
+  border:1px solid var(--border); 
+  border-radius:8px; 
+  background: #fdf7f4; /* Το απαλό ροζ-μπεζ που ζήτησες */
+  padding:15px; 
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* New Version time stamp : 2026-02-05 20:10 
+   Layout: DASHBOARD SPLIT 75/25 */
+
+
+
+
+/* Sidebar που πιάνει όλη την οθόνη */
+
+
+/* Το περιεχόμενο που σκρολάρει */
+
+#global-ai-content::-webkit-scrollbar { display: none; }
+
+
+
+ /* New Version time stamp : 2026-02-05 21:55 */
+.resizer {
+  width: 8px;
+  cursor: col-resize;
+  background: var(--border);
+  align-self: stretch;
+  margin: 0 5px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.resizer:hover, .resizing {
+  background: var(--primary);
+}
+
+/* Context Menu Style */
+.custom-cm {
+  position: fixed; background: white; border: 1px solid var(--primary); border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10000; display: none; min-width: 200px;
+  overflow: hidden;
+}
+.cm-item {
+  padding: 12px 15px; cursor: pointer; font-size: 13px; font-weight: bold; 
+  transition: 0.2s; border-bottom: 1px solid #eee; color: #333;
+}
+.cm-item:hover { background: #f0f7ff; color: var(--primary); }
+ 
+ </style>
 </head>
 <body>
-  <div class="container">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-      <h2 style="margin:0;">🚀 SummyMail</h2>
-      <select onchange="changeTheme(this.value)" style="padding:5px; border-radius:5px;">
-        <option value="light">🔵 Light</option>
-        <option value="dark">🌑 Dark</option>
-      </select>
-    </div>
-    
-    <div class="card">
-      <div style="display:flex; gap:10px; margin-bottom:15px;"><input type="date" id="start"> <input type="date" id="end"></div>
+
+  <div id="loginOverlay">
+    <form class="login-box" onsubmit="handleLogin(event)">
+      <h2 style="color:var(--primary); margin-top:0;">🔐 SummyMail Access</h2>
+      <input type="email" id="userEmail" name="username" autocomplete="username" placeholder="Username" required>
+      <input type="password" id="userPass" name="password" autocomplete="current-password" placeholder="Password" required>
+      <label class="remember-me"><input type="checkbox" id="rememberMe"> Αποθήκευση στοιχείων</label>
+      <button type="submit" class="btn-main" style="background:var(--primary); padding:12px; margin-top:10px;">Είσοδος</button>
+      <p id="loginError" style="color:red; font-size:12px; margin-top:10px; min-height:15px;"></p>
+    </form>
+  </div>
+
+  <div class="container" id="mainContainer" style="display:none;">
+
+
+<div class="main-header">
       
-      <div class="toolbar">
-        <div class="toolbar-left">
-          <div style="text-align:center;"><small>CONSULTANTS</small><br>
-            <div style="display:flex; gap:8px;">
-              <label class="round-btn un-avatar" title="Άγνωστα"><input type="checkbox" class="cf" value="⚠️ Unassigned" onchange="applyGlobal()">?</label>
-              <label class="round-btn" title="Thanos"><input type="checkbox" class="cf" value="Thanos" onchange="applyGlobal()">Θ</label>
-              <label class="round-btn" title="Tolis"><input type="checkbox" class="cf" value="Tolis" onchange="applyGlobal()">Τ</label>
-              <label class="round-btn" title="Nikos"><input type="checkbox" class="cf" value="Nikos" onchange="applyGlobal()">Ν</label>
-              <label class="round-btn" title="Thymios"><input type="checkbox" class="cf" value="Thymios" onchange="applyGlobal()">Θυ</label>
-            </div>
-          </div>
+      <h2 style="margin:0; font-size: 18px; white-space: nowrap; flex-shrink: 0;">🚀 SummyMail</h2>
+
+    <div style="display:flex; gap:8px; align-items: center; flex-shrink: 0;">
+  
+  <div style="display:flex; align-items:center; gap:4px;">
+    <span style="font-size:11px; font-weight:bold; color:var(--primary);">Από:</span>
+    <input type="date" id="singleDate" class="btn-main" style="margin:0; height: 35px; width: 130px; font-size: 13px; text-align: center; cursor: pointer; color-scheme: dark; border: 1px solid var(--border); padding: 0 5px; background: var(--bg-card); color: var(--text-main);">
+  </div>
+
+  <div style="display:flex; align-items:center; gap:4px;">
+    <span style="font-size:11px; font-weight:bold; color:var(--primary);">Έως:</span>
+    <input type="date" id="endDate" class="btn-main" style="margin:0; height: 35px; width: 130px; font-size: 13px; text-align: center; cursor: pointer; color-scheme: dark; border: 1px solid var(--border); padding: 0 5px; background: var(--bg-card); color: var(--text-main);">
+  </div>
+
+  <button class="btn-main" onclick="fetchData()" style="margin:0; height: 35px; width: auto; padding: 0 12px; font-size: 13px; background: var(--green); border: none; white-space: nowrap;">🚀 Αναφορά</button>
+  
+  <button class="btn-main" id="btn-bulk-save" onclick="bulkSaveToBQ()" style="margin:0; height: 35px; width: auto; padding: 0 12px; font-size: 13px; background: var(--primary); border: none; white-space: nowrap; margin-left: 5px;">💾 Αποθήκευση σε BQ</button>
+  
+
+</div>
+
+      <div style="display:flex; gap:20px; align-items: center; flex-shrink: 0; background: rgba(0,0,0,0.03); padding: 5px 12px; border-radius: 30px; border: 1px solid var(--border);">
+        <div style="display:flex; gap:6px;">
+          <label class="round-btn" style="width:32px; height:32px; font-size:13px;"><input type="checkbox" class="cf" value="Thanos" onchange="applyGlobal()">Θ</label>
+          <label class="round-btn" style="width:32px; height:32px; font-size:13px;"><input type="checkbox" class="cf" value="Tolis" onchange="applyGlobal()">Τ</label>
+          <label class="round-btn" style="width:32px; height:32px; font-size:13px;"><input type="checkbox" class="cf" value="Nikos" onchange="applyGlobal()">Ν</label>
+          <label class="round-btn" style="width:32px; height:32px; font-size:13px;"><input type="checkbox" class="cf" value="Thymios" onchange="applyGlobal()">Θυ</label>
         </div>
-        <div class="toolbar-right">
-          <div style="text-align:center;"><small>ΟΜΑΔΑ</small><br>
-            <div style="display:flex; gap:8px;">
-              <label class="round-btn group-btn" title="Consultant" data-active="false"><input type="radio" name="gM" value="cons" onchange="toggleGroup(this)">👤</label>
-              <label class="round-btn group-btn" title="Πελάτης" data-active="false"><input type="radio" name="gM" value="client" onchange="toggleGroup(this)">🏢</label>
-            </div>
-          </div>
-          <div style="text-align:center;"><small>ΤΑΞΙΝΟΜΗΣΗ</small><br>
-            <div style="display:flex; gap:8px;">
-              <label class="round-btn" title="Νεότερα"><input type="radio" name="sM" value="new" checked onchange="applyGlobal()">↓</label>
-              <label class="round-btn" title="Παλαιότερα"><input type="radio" name="sM" value="old" onchange="applyGlobal()">↑</label>
-            </div>
-          </div>
+   <div style="display:flex; gap:6px; border-left: 1px solid #ccc; padding-left: 12px;">
+  <button id="btn-g-cons" class="round-btn group-btn" style="width:32px; height:32px; font-size:13px; border:none;" onclick="toggleGroupBy('cons')">👤</button>
+  <button id="btn-g-client" class="round-btn group-btn" style="width:32px; height:32px; font-size:13px; border:none;" onclick="toggleGroupBy('client')">🏢</button>
+          <label class="round-btn" style="width:32px; height:32px; font-size:13px; background:#666;"><input type="radio" name="sM" value="new" checked onchange="applyGlobal()">↓</label>
+          <label class="round-btn" style="width:32px; height:32px; font-size:13px; background:#666;"><input type="radio" name="sM" value="old" onchange="applyGlobal()">↑</label>
         </div>
       </div>
 
-      <button class="btn-main" onclick="fetchData()">Προβολή Αναφοράς</button>
-      <div id="kR" class="k-rider"><div class="k-bar"></div></div>
+      <div style="display:flex; gap:8px; align-items:center; flex-shrink: 0;">
+        <div class="settings-dropdown">
+          <button class="btn-action" onclick="toggleSettings()" style="font-size:16px; height: 35px; width: 35px; display: flex; align-items: center; justify-content: center;">⚙️</button>
+          <div id="settingsMenu">
+            <div class="menu-item" onclick="openPromptSettings(); toggleSettings()">📝 System Prompt</div>
+          </div>
+        </div>
+        <button class="btn-action" onclick="logout()" style="height: 35px; padding: 0 10px;">🔓 Logout</button>
+        <select onchange="changeTheme(this.value)" style="height: 35px; border-radius: 4px; padding: 0 5px; cursor: pointer; border: 1px solid var(--border);"><option value="light">🔵 Light</option><option value="dark">🌑 Dark</option></select>
+      </div>
     </div>
+   
+<div id="kR" class="k-rider" style="position: fixed; top: 60px; left: 0; width: 100%; z-index: 2400; margin: 0; height: 4px;">
+  <div class="k-bar"></div>
+</div>
 
     <div id="previewArea"></div>
-    <div class="card"><h4>📂 Ιστορικό</h4><div id="historyList"></div></div>
+  </div>
+
+  <div id="promptModal" class="modal">
+    
+    <div class="card" style="width:90%; max-width:700px;">
+      <h3>⚙️ Global System Prompt (Server-side)</h3>
+      <p style="font-size:12px; color:#666;">Ορίστε την προεπιλεγμένη συμπεριφορά του AI.</p>
+      <textarea id="globalPromptText" style="width:100%; height:300px; padding:10px; font-family:monospace; border-radius:8px; border:1px solid #ccc;"></textarea>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn-main" onclick="saveGlobalPrompt()" style="background:var(--green);">💾 Save to Server</button>
+        <button class="btn-main" onclick="resetPrompt()" style="background:var(--accent); color:black;">🔄 Reset Default</button>
+        <button class="btn-main" onclick="document.getElementById('promptModal').style.display='none'" style="background:#888;">Close</button>
+      </div>
+    </div>
   </div>
 
   <script>
-    let rawData = null;
-    let historyFiles = [];
+    let rawData = [];
+    let lastGMode = '';
+    let authUser = "", authPass = "";
+    // ADDED: Prompt Variable
+    let currentGlobalPrompt = <?!= JSON.stringify(sysPrompt) ?>;
 
-    window.onload = function() { setT(); loadH(); };
-    function setT() { const d = new Date().toISOString().split('T')[0]; document.getElementById('start').value = d; document.getElementById('end').value = d; }
-    function changeTheme(t) { document.body.setAttribute('data-theme', t); }
+    window.onload = function() { 
+      document.getElementById('singleDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('endDate').value = new Date().toISOString().split('T')[0];
+      const sU = localStorage.getItem('summy_user');
+      const sP = localStorage.getItem('summy_pass');
+      if (sU && sP) { document.getElementById('userEmail').value = sU; document.getElementById('userPass').value = sP; performAuth(sU, sP); }
+    };
+
+    function handleLogin(e) { e.preventDefault(); performAuth(document.getElementById('userEmail').value, document.getElementById('userPass').value); }
     
-    function toggleGroup(el) {
-      if (el.dataset.active === "true") {
-        el.querySelector('input').checked = false;
-        el.dataset.active = "false";
-      } else {
-        document.querySelectorAll('.group-btn').forEach(b => b.dataset.active = "false");
-        el.dataset.active = "true";
-      }
-      applyGlobal();
-    }
-
-    function fetchData() {
-      document.getElementById('kR').style.display = 'block';
-      const s = document.getElementById('start').value, e = document.getElementById('end').value;
+    function performAuth(u, p) {
       google.script.run.withSuccessHandler(res => {
-        document.getElementById('kR').style.display = 'none';
-        rawData = res; applyGlobal();
-      }).generateQuickReport("", "", s, e);
+        if (res.success) {
+          authUser = u; authPass = p;
+          if(document.getElementById('rememberMe').checked) { localStorage.setItem('summy_user', u); localStorage.setItem('summy_pass', p); }
+          document.getElementById('loginOverlay').style.display = 'none';
+          document.getElementById('mainContainer').style.display = 'block';
+          const saved = localStorage.getItem('summy_rawData');
+          if (saved) { rawData = JSON.parse(saved); applyGlobal(); }
+        } else {
+          document.getElementById('loginError').innerText = res.message;
+        }
+      }).checkLogin(u, p);
     }
 
-    function applyGlobal() { if(rawData) render(rawData); renderHistoryList(); }
+    function changeTheme(t) { document.body.setAttribute('data-theme', t); }
 
-    function render(data) {
-      const gInput = document.querySelector('input[name="gM"]:checked');
-      const mode = gInput ? gInput.value : 'list';
-      const sortNew = document.querySelector('input[name="sM"]:checked').value === 'new';
-      const filters = Array.from(document.querySelectorAll('.cf:checked')).map(c => c.value);
+    // --- ADDED: SETTINGS & PROMPT LOGIC ---
+    function toggleSettings() {
+      const menu = document.getElementById('settingsMenu');
+      menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+    }
+    window.onclick = function(event) {
+      if (!event.target.closest('.settings-dropdown')) document.getElementById('settingsMenu').style.display = 'none';
+    }
+    function openPromptSettings() { 
+      document.getElementById('globalPromptText').value = currentGlobalPrompt; 
+      document.getElementById('promptModal').style.display = 'flex'; 
+    }
+    function saveGlobalPrompt() {
+      const p = document.getElementById('globalPromptText').value;
+      google.script.run.withSuccessHandler(msg => { 
+        currentGlobalPrompt = p; 
+        alert(msg); 
+        document.getElementById('promptModal').style.display = 'none'; 
+      }).saveGlobalPrompt(p);
+    }
+    function resetPrompt() {
+      if(confirm('Θέλεις σίγουρα να επαναφέρεις το αρχικό Prompt;')) {
+        google.script.run.withSuccessHandler(p => {
+          currentGlobalPrompt = p;
+          document.getElementById('globalPromptText').value = p;
+          alert('Το Prompt επανήλθε στις εργοστασιακές ρυθμίσεις!');
+        }).resetGlobalPrompt();
+      }
+    }
+
+    function formatDate(isoStr) { try { const d = new Date(isoStr); const day = d.getDate().toString().padStart(2, '0'); const month = (d.getMonth()+1).toString().padStart(2, '0'); const year = d.getFullYear(); const days = ['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ']; const dayName = days[d.getDay()]; const hours = d.getHours().toString().padStart(2, '0'); const minutes = d.getMinutes().toString().padStart(2, '0'); return `${dayName} ${day}/${month}/${year} ${hours}:${minutes}`; } catch (e) { return dateStr; } }
+
+ /* New Version time stamp : 2026-02-26 17:50 */
+/* New Version lines : 12 */
+
+function fetchData() {
+
+rawData = []; 
+  localStorage.removeItem('summy_rawData');
+  document.getElementById('previewArea').innerHTML = '';
+
+  document.getElementById('kR').style.display = 'block';
+  
+  // Διαβάζουμε και τις δύο ημερομηνίες
+  const start = document.getElementById('singleDate').value;
+  const end = document.getElementById('endDate').value || start; 
+  
+  google.script.run.withSuccessHandler(res => {
+    document.getElementById('kR').style.display = 'none';
+    
+    // Προσθήκη νέων δεδομένων στα υπάρχοντα (rawData) χωρίς διπλότυπα
+    const existingIds = new Set(rawData.map(t => t.id));
+    res.forEach(newT => { 
+      if (!existingIds.has(newT.id)) rawData.push(newT); 
+    });
+    
+    applyGlobal();
+    document.getElementById('previewArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }).generateQuickReport(authUser, authPass, start, end); // Στέλνουμε start και end
+}
+
+
+function applyGlobal() {
+  if(!rawData || rawData.length === 0) {
+    console.error("rawData is empty or undefined!");
+    return;
+  }
+
+  // 1. ΦΙΛΤΡΑ & ΔΕΔΟΜΕΝΑ
+  const gMode = lastGMode || 'list';
+  const sMode = (document.querySelector('input[name="sM"]:checked') || {value:'new'}).value;
+  const checkboxes = document.querySelectorAll('.cf:checked');
+  const filters = Array.from(checkboxes).map(c => c.value);
+  
+  let data = filters.length ? rawData.filter(t => filters.includes(t.consultant)) : [...rawData];
+
+  // Ταξινόμηση
+  data.sort((a, b) => a.lastUpdate - b.lastUpdate); 
+  data.forEach((t, i) => { t.aa = i + 1; }); 
+  data.sort((a,b) => sMode === 'new' ? b.lastUpdate - a.lastUpdate : a.lastUpdate - b.lastUpdate);
+
+  const totalMailsSum = data.reduce((acc, t) => acc + (t.messages ? t.messages.length : 0), 0);
+
+  // 2. ΧΤΙΣΙΜΟ ΤΟΥ ΣΚΕΛΕΤΟΥ (Layout Surgery)
+  document.getElementById('previewArea').innerHTML = `
+    <div class="main-dashboard">
+      <div class="emails-column" id="finalReport">
+        <div id="emails-list-target" style="padding-bottom: 20px;">
+          <div style="padding:20px; color:#888;">⏳ Προετοιμασία λίστας...</div>
+        </div>
+        <button class="btn-main" style="background:var(--green); margin-top:20px; width:100%;" onclick="save()">💾 Αποθήκευση</button>
+      </div>
+
+      <div class="resizer" id="dragMe"></div>
+
+      <div class="ai-sidebar">
+        <div id="global-ai-content" style="flex:1; overflow-y:auto; padding:0; scrollbar-width: thin; display: flex; flex-direction: column;">
+           <div style="text-align:center; color:#888; margin-top:50px; padding:20px;">
+             <h3>🤖 AI Workspace</h3>
+             <p>Επιλέξτε μια συνομιλία για ανάλυση.</p>
+           </div>
+        </div>
+
+        <div class="card" style="margin:0; border:none; border-top:1px solid var(--border); padding:15px; flex-shrink:0; background:white;">
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="global-ai-input" 
+                   style="flex:1; padding:12px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box;" 
+                   placeholder="Συζήτηση για ανάλυση ή tasks..."
+                   onkeypress="if(event.key === 'Enter') runGlobalAI('summary')">
+            <button class="btn-action" 
+                    style="background:var(--primary); color:white; width:45px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:18px;" 
+                    onclick="runGlobalAI('summary')">➔</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  // 3. ΠΑΡΑΓΩΓΗ HTML ΤΩΝ MAILS
+  let emailsHtml = "";
+  if(data.length === 0) {
+    emailsHtml = `<div style="padding:20px; color:red;">⚠️ Δεν βρέθηκαν mails.</div>`;
+  } else {
+    if(gMode === 'list') {
+      emailsHtml += `<div class="grid-row list-header" style="position:sticky; top:0; z-index:100;"><div>#</div><div>🏢 Πελάτης</div><div>👤 Consultant</div><div>🕒 Ημερομηνία</div><div style="text-align:center;">#Mails (${totalMailsSum})</div><div>📝 Θέμα</div></div>`;
+      data.forEach(t => { try { emailsHtml += renderThread(t); } catch(e) {} });
+    } else {
+      let groups = {};
+      data.forEach(t => { const k = (gMode === 'cons') ? t.consultant : t.client; if(!groups[k]) groups[k] = []; groups[k].push(t); });
+      Object.keys(groups).sort().forEach(k => {
+        const gSum = groups[k].reduce((acc, t) => acc + (t.messages ? t.messages.length : 0), 0);
+        emailsHtml += `<details open style="margin-bottom:15px;"><summary style="background:var(--primary); color:white; padding:10px; border-radius:8px;">${k} (${groups[k].length} threads)</summary>`;
+        emailsHtml += `<div class="grid-row list-header" style="background:#555;"><div>#</div><div>🏢 Πελάτης</div><div>👤 Consultant</div><div>🕒 Timestamp</div><div style="text-align:center;">#Mails (${gSum})</div><div>📝 Θέμα</div></div>`;
+        groups[k].forEach(t => { try { emailsHtml += renderThread(t); } catch(e) {} });
+        emailsHtml += '</details>';
+      });
+    }
+  }
+
+  document.getElementById('emails-list-target').innerHTML = emailsHtml;
+
+  if(typeof initResizer === 'function') initResizer();
+}
+
+
+function renderThread(t) {
+  if(!t.msgSortOrder) t.msgSortOrder = 'desc';
+  return `
+  <details id="t-${t.id}" style="border-bottom:1px solid var(--border);">
+    <summary oncontextmenu="showMenu(event, 'thread', '${t.id}')" style="outline:none; cursor:pointer;">
+      <div class="grid-row">
+        <div style="font-weight:bold; color:#888; text-align:center;">${t.aa || ''}</div>
+        <div><b>${t.client}</b></div>
+        <div>${t.consultant}</div>
+        <div>${formatDate(t.lastUpdate)}</div>
+        <div style="text-align:center;"><b>${t.messages ? t.messages.length : 0}</b></div>
+        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.subject}</div>
+      </div>
+    </summary>
+    
+    <div style="background: rgba(0,0,0,0.01); border-top: 1px solid var(--border);">
+      <div style="padding: 10px 15px; background: rgba(0,0,0,0.03); border-bottom: 1px solid #ddd; display: flex; justify-content: flex-end; align-items: center;">
+        <span style="margin-right:auto; font-size:12px; color:#666; font-weight:bold;">📂 Ιστορικό Συνομιλίας</span>
+        <button id="sort-btn-${t.id}" class="btn-action" onclick="toggleMsgSort('${t.id}')">
+          ${t.msgSortOrder === 'desc' ? '🔄 1ο -> Τελευταίο' : '🔄 Τελευταίο -> 1ο'}
+        </button>
+      </div>
+
+      <div id="msg-list-${t.id}" style="padding: 15px;">
+        ${renderMessageList(t)}
+      </div>
+
+      <div style="padding: 15px; background: #fff; border-top: 1px solid #eee; display: flex; gap: 10px;">
+        <input type="text" id="in-${t.id}" style="flex:1; padding:10px; border-radius:8px; border:1px solid #ccc;" placeholder="Ρωτήστε το AI για αυτή τη συνομιλία...">
+        <button class="btn-action" style="background:var(--primary); color:white;" onclick="runAI('${t.id}')">✨ Ανάλυση</button>
+      </div>
+    </div>
+  </details>`;
+}
+
+function renderMessageList(t) {
+  if (!t.messages || t.messages.length === 0) return "Δεν βρέθηκαν μηνύματα.";
+  
+  const total = t.messages.length;
+  let indexedMsgs = t.messages.map((m, i) => ({ ...m, seq: i + 1 }));
+  if (t.msgSortOrder === 'desc') indexedMsgs.reverse();
+  
+  // ΕΔΩ ΔΕΝ ΥΠΑΡΧΕΙ ΠΛΕΟΝ REFRESH - ΜΟΝΟ ΣΧΕΔΙΑΣΜΟΣ HTML
+  return indexedMsgs.map(m => {
+    const isLast = (m.seq === total);
+    return `
+    <div class="msg-full" ${isLast ? 'style="border-left: 4px solid #2e7d32;"' : ''}>
+      <div class="msg-header" oncontextmenu="showMenu(event, 'mail', '${m.id}')" style="${isLast ? 'background: #f1f8e9;' : ''}">
+        <div style="display:flex; align-items:center;">
+          ${isLast ? '<span style="color:#2e7d32; margin-right:6px; font-size:16px;">●</span>' : ''}
+          <b>${m.from}</b> 
+          <small style="margin-left:10px; color:#555;">${formatDate(m.timestamp)}</small>
+        </div>
+        <button class="btn-action" style="margin-left:auto;" onclick="loadFull(this, '${m.id}')">Load Full Mail</button>
+      </div>
+      <div id="grid-${m.id}" style="padding:10px; background:#fff; border-bottom:1px solid #eee;"></div>
+      <div class="m-body" style="padding:15px; background:rgba(0,0,0,0.02); overflow-x:auto;">${m.body}</div>
+      <div class="full-mail-view" style="display:none;"></div>
+    </div>`;
+  }).join('');
+}
+
+function toggleMsgSort(tid) {
+  const thread = rawData.find(t => t.id === tid);
+  thread.msgSortOrder = (thread.msgSortOrder === 'desc') ? 'asc' : 'desc';
+  document.getElementById(`sort-btn-${tid}`).innerText = (thread.msgSortOrder === 'desc') ? '🔄 Πατήστε για 1ο -> Τελευταίο' : '🔄 Πατήστε για Τελευταίο-> 1ο';
+  document.getElementById(`msg-list-${tid}`).innerHTML = renderMessageList(thread);
+}
+
+    function switchTab(tid, tabId) {
+      const c = document.getElementById(`tabs-${tid}`);
+      c.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      c.querySelectorAll('.tab-content').forEach(cont => cont.classList.remove('active'));
+      event.target.classList.add('active');
+      const target = document.getElementById(tabId === 'ai' ? `content-ai-${tid}` : `content-hist-${tid}`);
+      if(target) target.classList.add('active');
+      if (tabId === 'ai') renderChatUI(tid);
+    }
+
+  function runGlobalAI(mode) {
+  const openDetail = document.querySelector('.emails-column details[open]');
+  if (!openDetail) {
+    alert("Παρακαλώ ανοίξτε μια συνομιλία αριστερά.");
+    return;
+  }
+  const tid = openDetail.id.replace('t-', '');
+  runAI(tid, mode);
+}
+
+
+function runAI(tid, mode) {
+  const userMsg = document.getElementById(`in-${tid}`)?.value || 
+                  document.getElementById('global-ai-input')?.value || 
+                  "Ανάλυση";
+
+  // Εντοπίζουμε αν υπάρχει ήδη το stream της συζήτησης
+  const chatStream = document.getElementById('side-chat-stream');
+  
+  if (chatStream) {
+    // ΑΝ ΥΠΑΡΧΕΙ: Προσθέτουμε απλά ένα loading bubble στο τέλος χωρίς να σβήσουμε τα Tasks πάνω
+    chatStream.innerHTML += `<div id="ai-loading-tmp" class="chat-bubble chat-ai" style="opacity:0.6;">⌛ <b>${mode === 'tasks' || mode === 'recreate' ? 'Ανάθεση Tasks...' : 'Το AI αναλύει...'}</b></div>`;
+    
+    // Κάνουμε αυτόματο scroll προς τα κάτω για να φαίνεται το loading
+    const globalChat = document.getElementById('global-ai-content');
+    globalChat.scrollTop = globalChat.scrollHeight;
+  } else {
+    // ΑΝ ΔΕΝ ΥΠΑΡΧΕΙ (π.χ. πρώτη φορά): Τότε μόνο βάζουμε το global loader
+    const displayArea = document.getElementById('global-ai-content');
+    if (displayArea) {
+      displayArea.innerHTML = `<div style="padding:20px; text-align:center;">⌛ <b>${mode === 'tasks' || mode === 'recreate' ? 'Ανάθεση Tasks...' : 'Το AI αναλύει...'}</b></div>`;
+    }
+  }
+
+  // ΚΑΛΟΥΜΕ ΤΗ ΣΥΝΑΡΤΗΣΗ ΠΟΥ ΧΕΙΡΙΖΕΤΑΙ ΤΟ ΑΠΟΤΕΛΕΣΜΑ
+  confirmAi(tid, userMsg, mode);
+}
+
+
+
+function generateTaskSummaryTable(entries) {
+// Ορισμός της συνάρτησης που μετατρέπει τα ακατέργαστα entries του AI σε πίνακα σύνοψης.
+
+  const statusMap = {
+    1: "ΑΝΑΜΟΝΗ ΑΝΑΘΕΣΗΣ", 2: "ΕΝΑΡΞΗ/ΑΝΑΘΕΣΗ", 3: "ΕΚΚΡ. ΠΕΛΑΤΗ", 
+    4: "ΕΚΚΡ. DATALINK", 5: "ΟΛΟΚΛΗΡΩΣΗ", 6: "ΑΠΟΚΡΙΣΗ", 
+    7: "ΥΠΟΣΤΗΡΙΞΗ (Χρεώσιμη)", 8: "ΥΠΟΣΤΗΡΙΞΗ (Δωρεάν)", 9: "ΑΡΣΗ ΕΚΚΡΕΜΟΤΗΤΑΣ", 
+    10: "ΜΕΛΛΟΝΤΙΚΟ", 11: "ΕΝΗΜΕΡΩΣΗ", 12: "TICKET SOFT1", 13: "ΑΚΥΡΩΣΗ"
+  };
+  // Αντιστοίχιση των αριθμητικών IDs των Status με τα επίσημα λεκτικά της εφαρμογής.
+
+  let summary = {};
+  // Δημιουργία αντικειμένου για την ομαδοποίηση των tasks ανά όνομα.
+
+  entries.forEach(e => {
+  // Για κάθε entry που παρήγαγε το AI:
+
+    let tName = e.task_name || "Άγνωστο Task";
+    // Λήψη του ονόματος του task. Αν δεν υπάρχει, ονομάζεται "Άγνωστο".
+
+    if (!summary[tName]) {
+      summary[tName] = { count: 0, lastStatusId: e.status_id };
+    }
+    // Αν το task εμφανίζεται για πρώτη φορά, φτιάξε μια νέα εγγραφή στο summary.
+
+    let indices = Array.isArray(e.msg_index) ? e.msg_index : [e.msg_index];
+    summary[tName].count += indices.length;
+    // Πρόσθεσε τον αριθμό των μηνυμάτων που αφορά αυτό το συγκεκριμένο task.
+
+    summary[tName].lastStatusId = Array.isArray(e.status_id) ? e.status_id[0] : e.status_id;
+    // Ενημέρωσε το Status ID με την τελευταία τιμή που βρέθηκε (για να φαίνεται η πιο πρόσφατη κατάσταση).
+  });
+
+  let html = `
+    <div style="margin-top:15px; border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+      <div style="background:var(--primary); color:white; padding:8px 12px; font-weight:bold; font-size:13px;">📊 Σύνοψη Tasks</div>
+      <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+        <tr style="background:#f5f5f5; border-bottom:1px solid #ddd;">
+          <th style="padding:8px; width:60%;">Εργασία (Task)</th>
+          <th style="padding:8px; text-align:center; width:15%;"># Mails</th>
+          <th style="padding:8px; width:25%;">Τελευταίο Status</th>
+        </tr>`;
+  // Κατασκευή του σκελετού του πίνακα με σταθερά πλάτη στηλών (60/15/25).
+
+  for (let task in summary) {
+  // Για κάθε ομαδοποιημένο task στο summary:
+
+    let sId = summary[task].lastStatusId;
+    let sName = statusMap[sId] || `Status ${sId}`;
+    let statusColor = (sId == 5) ? '#2e7d32' : (sId == 3 ? '#d32f2f' : (sId == 4 ? '#f39c12' : '#555'));
+    // Επιλογή χρώματος (Πράσινο/Κόκκινο/Πορτοκαλί) ανάλογα με το Status ID.
+
+    html += `
+        <tr style="border-bottom:1px solid #eee; background:#fff;">
+          <td style="padding:8px; font-weight:500; color:#333;">${task}</td>
+          <td style="padding:8px; text-align:center; font-weight:bold; color:var(--primary);">${summary[task].count}</td>
+          <td style="padding:8px;"><span style="background:${statusColor}; color:white; padding:3px 8px; border-radius:12px; font-size:10px; font-weight:bold;">${sName}</span></td>
+        </tr>`;
+    // Προσθήκη της γραμμής του task με το στυλιζαρισμένο "pill" για το status.
+  }
+  return html + `</table></div>`;
+  // Επιστροφή του πλήρους HTML κώδικα του πίνακα.
+}
+
+
+function confirmAi(tid, msg, mode) {
+  const thread = rawData.find(t => String(t.id) === String(tid));
+  if (!thread) return;
+
+  const isTasks = (mode === 'tasks' || mode === 'recreate');
+  let p = isTasks ? <?!= JSON.stringify(getTaskAssignmentPrompt()) ?> : currentGlobalPrompt;
+  
+  // 1. ΔΙΑΣΦΑΛΙΣΗ ΙΣΤΟΡΙΚΟΥ (Append αντί για Reset)
+  if (!thread.chatHistory) thread.chatHistory = [];
+  thread.chatHistory.push({ role: "user", parts: [{ text: msg }] });
+
+  // Στοχεύουμε το κεντρικό input του sidebar
+  const inputEl = document.getElementById('global-ai-input');
+  if (inputEl) {
+    inputEl.disabled = true;
+    inputEl.placeholder = "Το AI σκέφτεται...";
+  }
+
+  google.script.run
+    .withSuccessHandler(res => {
+      if (inputEl) {
+        inputEl.disabled = false;
+        inputEl.placeholder = "Συζήτηση για ανάλυση ή tasks...";
+        inputEl.value = ''; // Καθαρίζουμε το κουτί
+      }
       
-      let filtered = (filters.length === 0) ? data : data.filter(t => filters.includes(t.consultant));
-      filtered.sort((a,b) => sortNew ? b.lastUpdate - a.lastUpdate : a.lastUpdate - b.lastUpdate);
+      // 2. ΠΡΟΣΘΗΚΗ ΑΠΑΝΤΗΣΗΣ ΣΤΟ ΙΣΤΟΡΙΚΟ (Όχι αντικατάσταση)
+      thread.chatHistory.push({ role: "model", parts: [{ text: res.trim() }] });
 
-      let html = `<div class="card" id="finalReport"><h3>Αναφορά</h3>`;
-      if (mode === 'list') {
-        filtered.forEach(t => html += renderThread(t, sortNew));
-      } else {
-        const key = (mode === 'cons') ? 'consultant' : 'client';
-        const order = ["⚠️ Unassigned", "Thanos", "Tolis", "Nikos", "Thymios"];
-        let groups = {};
-        filtered.forEach(t => { if(!groups[t[key]]) groups[t[key]] = []; groups[t[key]].push(t); });
-        const sortedKeys = Object.keys(groups).sort((a,b) => {
-          if(mode === 'cons') return order.indexOf(a) - order.indexOf(b);
-          return a.localeCompare(b);
-        });
-        sortedKeys.forEach(k => {
-          html += `<details open style="margin-bottom:15px;"><summary style="background:var(--primary); color:white; padding:10px; border-radius:8px; font-weight:bold;">${k}</summary>`;
-          groups[k].forEach(t => html += renderThread(t, sortNew));
-          html += `</details>`;
+      // 3. LOGIC ΓΙΑ BIGQUERY (Μόνο αν είναι Task Mode)
+      if (isTasks) {
+        try {
+          let cleanRes = res.replace(/```json/g, "").replace(/```/g, "");
+          let start = cleanRes.indexOf('{'), end = cleanRes.lastIndexOf('}');
+          
+          if (start !== -1 && end !== -1 && end > start) {
+            let jsonString = cleanRes.substring(start, end + 1).replace(/\n/g, " ").replace(/\r/g, " ");
+            const command = JSON.parse(jsonString);
+            const entries = Array.isArray(command.entries) ? command.entries : [command];
+            
+            let taskPackage = []; 
+            entries.forEach(entry => {
+              let indices = Array.isArray(entry.msg_index) ? entry.msg_index : [entry.msg_index];
+              indices.forEach(rawIdx => {
+                let msgIdx = parseInt(rawIdx) - 1;
+                if (thread.messages[msgIdx]) {
+                  taskPackage.push({ msgId: thread.messages[msgIdx].id, entry: entry });
+                }
+              });
+            });
+
+            if (taskPackage.length > 0) {
+              google.script.run
+                .withSuccessHandler(logStatus => {
+                  console.log("BQ Log:", logStatus);
+                  refreshAllTasksInThread(tid); // Ανανέωση αριστερά στα mails
+                  syncTasksOnly(tid, thread);   // Ανανέωση πάνω δεξιά (χωρίς flicker)
+                })
+                .aiAutomatedLoggerBatch(taskPackage, tid, thread.client, thread.consultant, mode === 'recreate');
+            }
+          }
+        } catch (e) { console.error("JSON Error:", e); }
+      }
+
+      // 4. ΖΩΓΡΑΦΙΚΗ (Μόνο το Chat κομμάτι)
+      renderChatUI(tid, true); 
+
+    })
+    .withFailureHandler(err => {
+      if (inputEl) inputEl.disabled = false;
+      alert("❌ AI ERROR: " + err.message);
+    })
+    .getAiChatResponse(tid, thread.chatHistory, p, null, mode === 'recreate');
+}
+
+
+function syncTasksOnly(tid, thread) {
+  const mIds = thread.messages.map(m => m.id);
+  google.script.run.withSuccessHandler(allTasksMap => {
+    let allEntries = [];
+    Object.values(allTasksMap).forEach(tasks => {
+      tasks.forEach(t => {
+        allEntries.push({ task_name: t.task, status_id: t.sId, msg_index: [1] });
+      });
+    });
+
+    // Ενημέρωση Πίνακα
+    const taskContainer = document.getElementById('side-tasks-container');
+    if (taskContainer) {
+      taskContainer.innerHTML = allEntries.length > 0 
+        ? generateTaskSummaryTable(allEntries) 
+        : "<p style='color:#888; font-size:12px; text-align:center; padding:10px; border:1px dashed #ccc;'>Δεν υπάρχουν ενεργά Tasks.</p>";
+    }
+
+    // Ενημέρωση Κουμπιών (Create ή Update)
+    const actionsContainer = document.getElementById('task-actions');
+    if (actionsContainer) {
+      const btnLabel = allEntries.length > 0 ? "🔄 Update Tasks" : "🚀 Create Tasks";
+      const btnColor = allEntries.length > 0 ? "var(--green)" : "var(--primary)";
+      actionsContainer.innerHTML = `
+        <button class="btn-main" style="flex:1; background:${btnColor}; margin:0; padding:10px; font-size:12px;" onclick="runAI('${tid}', 'tasks')">${btnLabel}</button>
+        <button class="btn-action" style="background:var(--red); color:white; width:40px; height:38px; border:none; border-radius:8px;" onclick="confirmDeleteTasks('${tid}')">🗑️</button>
+      `;
+    }
+  }).getBulkMailTaskQueue(mIds);
+}
+
+function copyJsonToClipboard(elementId) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  
+  // Παίρνουμε το καθαρό κείμενο από το <pre>
+  const textToCopy = el.innerText || el.textContent;
+  
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    // Μπορείς να βάλεις ένα απλό alert αν θες, ή να μην βγάζει τίποτα
+    alert("✅ Το JSON αντιγράφηκε επιτυχώς!");
+  }).catch(err => {
+    console.error('Failed to copy: ', err);
+    alert("❌ Αποτυχία αντιγραφής.");
+  });
+}
+
+function renderChatUI(tid, isAppend = false) {
+  const thread = rawData.find(t => String(t.id) === String(tid));
+  const globalChat = document.getElementById('global-ai-content');
+  
+  // 1. ΑΝ ΕΙΝΑΙ Η ΠΡΩΤΗ ΦΟΡΑ (όχι append), ΧΤΙΖΟΥΜΕ ΤΟ ΣΚΕΛΕΤΟ
+  if (!isAppend) {
+    globalChat.innerHTML = `
+      <div id="side-header-fixed" style="padding:15px; border-bottom:1px solid var(--border); background:var(--bg-card); position:sticky; top:0; z-index:100;">
+        <div style="font-size:14px; font-weight:bold; color:var(--primary); margin-bottom:10px;">🏠 ${thread.client}</div>
+        <div id="side-tasks-container">
+          <p style="color:#888; font-size:12px; text-align:center;">📊 Φόρτωση Tasks...</p>
+        </div>
+        <div id="task-actions" style="display:flex; align-items:center; gap:8px; margin-top:10px;"></div>
+      </div>
+      <div id="side-chat-stream" style="padding:15px;"></div>`;
+    
+    // Φορτώνουμε τα tasks μόνο όταν χτίζεται το κέλυφος
+    syncTasksOnly(tid, thread);
+  }
+
+  // 2. ΖΩΓΡΑΦΙΚΗ ΤΟΥ CHAT (APPEND LOGIC)
+  const chatStream = document.getElementById('side-chat-stream');
+  if (chatStream && thread.chatHistory) {
+    chatStream.innerHTML = thread.chatHistory.map(m => {
+      let content = m.parts[0].text;
+      // Καθαρίζουμε το JSON από το κείμενο της συζήτησης για να μη φαίνεται άσχημο
+      let cleanText = content.replace(/```json[\s\S]*?```/g, "").trim();
+      
+      const roleClass = m.role === 'user' ? 'chat-user' : 'chat-ai';
+      const roleName = m.role === 'user' ? 'ΕΣΥ' : 'AI ASSISTANT';
+      
+      return `
+        <div class="chat-bubble ${roleClass}">
+          <span class="chat-role">${roleName}</span>
+          ${cleanText || "Η ανάλυση ολοκληρώθηκε."}
+        </div>`;
+    }).join('');
+  }
+
+  // Πάντα scroll στο τέλος της συζήτησης
+  globalChat.scrollTop = globalChat.scrollHeight;
+}
+
+
+function confirmDeleteTasks(tid) {
+  const warning = "⚠️ ΠΡΟΣΟΧΗ!\n\nΘα διαγραφούν ΟΛΑ τα καταγεγραμμένα tasks για αυτή τη συνομιλία από τη BigQuery.\n\nΗ ενέργεια αυτή δεν αναιρείται. Θέλετε να προχωρήσετε;";
+  
+  if (confirm(warning)) {
+    document.getElementById('side-tasks-container').innerHTML = "<p style='color:red; text-align:center;'>🗑️ Διαγραφή...</p>";
+    google.script.run.withSuccessHandler(res => {
+      alert(res);
+      renderChatUI(tid); // Refresh το Sidebar
+      refreshAllTasksInThread(tid); // Refresh τα mails αριστερά
+    }).deleteTasksForThread(tid);
+  }
+}
+
+
+function switchGlobalAiTab(tabName) {
+// Ορισμός της συνάρτησης που εναλλάσσει το περιεχόμενο της δεξιάς μπάρας.
+
+  ['chat', 'tasks', 'json'].forEach(name => {
+  // Για κάθε ένα από τα τρία Tabs (Συνομιλία, Tasks, RAW JSON):
+
+    document.getElementById(`g-tab-${name}`).style.display = 'none';
+    // Κρύψε το περιεχόμενό του από την οθόνη.
+    
+    let btn = document.getElementById(`g-btn-${name}`);
+    // Εντόπισε το αντίστοιχο κουμπί του Tab στο πάνω μέρος.
+
+    if (btn) {
+      btn.style.background = 'transparent';
+      btn.style.borderBottom = '3px solid transparent';
+      btn.style.color = '#666';
+    }
+    // Επαναφορά του κουμπιού στην "ανενεργή" του κατάσταση (γκρι χρώμα).
+  });
+  
+  const targetTab = document.getElementById(`g-tab-${tabName}`);
+  if (targetTab) targetTab.style.display = 'block';
+  // Εμφάνισε μόνο το Tab που επέλεξε ο χρήστης.
+  
+  let activeBtn = document.getElementById(`g-btn-${tabName}`);
+  if (activeBtn) {
+    activeBtn.style.background = 'white';
+    activeBtn.style.borderBottom = '3px solid var(--primary)';
+    activeBtn.style.color = 'var(--primary)';
+  }
+  // Φώτισε το ενεργό κουμπί (μπλε γραμμή) για να ξέρει ο χρήστης πού βρίσκεται.
+
+  // ΛΟΓΙΚΗ ΣΥΣΤΗΜΑΤΟΣ: Αλλαγή κουμπιών στο Footer ανάλογα με το Tab.
+  const chatControls = document.getElementById('footer-chat-controls');
+  const taskControls = document.getElementById('footer-tasks-controls');
+  
+  if (chatControls && taskControls) {
+    chatControls.style.display = (tabName === 'chat') ? 'block' : 'none';
+    taskControls.style.display = (tabName === 'tasks') ? 'block' : 'none';
+  }
+  // Αν είμαστε στο Chat, δείξε το πεδίο κειμένου. Αν είμαστε στα Tasks, δείξε την "Ενημέρωση".
+}
+
+function loadFull(btn, id) {
+  const parent = btn.closest('.msg-full');
+  const viewer = parent.querySelector('.full-mail-view');
+  const previewBody = parent.querySelector('.m-body'); 
+
+  if (btn.innerText === "Close Full Mail") { 
+    viewer.style.display = 'none'; 
+    if (previewBody) previewBody.style.display = 'block'; 
+    btn.innerText = "Load Full Mail"; 
+    return; 
+  }
+
+  btn.innerText = "⏳...";
+  google.script.run.withSuccessHandler(res => { 
+    btn.innerText = "Close Full Mail"; 
+    viewer.style.display = 'block';
+    if (previewBody) previewBody.style.display = 'none'; 
+    
+    const attHtml = renderAttachments(res.attachments, res.msgId);
+    
+    viewer.innerHTML = `
+      <div style="padding:5px;">
+        ${res.headers}
+        ${attHtml}
+        <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+        <div class="mail-body-content" style="color:#222;">${res.body}</div>
+      </div>
+    `;
+  }).getFullEmailContent(id);
+}
+
+
+/* New Version time stamp : 2026-02-01 15:30 */
+
+// --- DATA MANAGEMENT ---
+function clearAllData() {
+  if(confirm("⚠️ Καθαρισμός ιστορικού;")) {
+    rawData = [];
+    localStorage.removeItem('summy_rawData');
+    document.getElementById('previewArea').innerHTML = '';
+    alert("Έγινε!");
+  }
+}
+
+/* New Version time stamp : 2026-02-01 14:35 */
+/* New Version lines : 12 */
+/* Prev Version time stamp : 2026-02-01 13:10 */
+/* Prev Version λινεσ : 5 */
+
+function logout() {
+  if(confirm("Αποσύνδεση από το SummyMail;")) {
+    // 1. Διαγραφή διαπιστευτηρίων
+    localStorage.removeItem('summy_user');
+    localStorage.removeItem('summy_pass');
+    
+    // 2. Αντί για location.reload(), αλλάζουμε το visibility των containers
+    // Έτσι αποφεύγουμε την άσπρη σελίδα του iframe
+    document.getElementById('mainContainer').style.display = 'none';
+    document.getElementById('loginOverlay').style.display = 'flex';
+    
+    // 3. Καθαρισμός πεδίων και μνήμης για ασφάλεια
+    document.getElementById('userEmail').value = '';
+    document.getElementById('userPass').value = '';
+    document.getElementById('previewArea').innerHTML = '';
+    rawData = []; 
+  }
+}
+
+// --- ATTACHMENTS ---
+function renderAttachments(attachments, msgId) {
+  if (!attachments || attachments.length === 0) return "";
+  let html = '<div style="margin: 10px 0; display:flex; flex-wrap:wrap;">';
+  attachments.forEach(att => {
+    html += `<div class="att-chip" onclick="handleDownload(this, '${msgId}', ${att.index})">📎 ${att.name} (${att.size}) <span class="loading-status"></span></div>`;
+  });
+  return html + '</div>';
+}
+
+/* New Version time stamp : 2026-02-01 15:45 */
+
+function handleDownload(element, msgId, index) {
+  const status = element.querySelector('.loading-status');
+  status.innerText = "...⏳";
+  element.style.pointerEvents = "none";
+
+  // 1. Ανοίγουμε ΑΜΕΣΩΣ ένα κενό tab (αυτό δεν μπλοκάρεται)
+  const newTab = window.open('', '_blank');
+  newTab.document.write('<html><body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;"><div>⏳ Προετοιμασία αρχείου...</div></body></html>');
+
+  google.script.run.withSuccessHandler(url => {
+    status.innerText = "";
+    element.style.pointerEvents = "auto";
+    
+    if (url) {
+      // 2. Μόλις έρθει το link, αλλάζουμε τη διεύθυνση του tab που ήδη ανοίξαμε
+      newTab.location.href = url;
+    } else {
+      newTab.close();
+      alert("Σφάλμα κατά τη λήψη του αρχείου.");
+    }
+  }).getAttachmentLink(msgId, index);
+}
+
+
+
+function changeTheme(t) {
+  document.body.setAttribute('data-theme', t);
+}
+
+/* New Version time stamp : 2026-02-01 13:10 
+   New Version lines : 30 */
+
+// --- SETTINGS & MODAL LOGIC ---
+function toggleSettings() {
+  const menu = document.getElementById('settingsMenu');
+  if (menu) menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+}
+
+function openPromptSettings() { 
+  // Υποθέτουμε ότι το currentGlobalPrompt έρχεται από το Backend κατά το φόρτωμα
+  document.getElementById('globalPromptText').value = currentGlobalPrompt; 
+  document.getElementById('promptModal').style.display = 'flex'; 
+}
+
+function saveGlobalPrompt() {
+  const p = document.getElementById('globalPromptText').value;
+  google.script.run.withSuccessHandler(msg => { 
+    currentGlobalPrompt = p; 
+    alert(msg); 
+    document.getElementById('promptModal').style.display = 'none'; 
+  }).saveGlobalPrompt(p);
+}
+
+
+/* New Version 18-02-2026 - Grouping Opening Fix */
+document.addEventListener('click', (e) => {
+  const summary = e.target.closest('summary');
+  if (summary && summary.parentElement.tagName === 'DETAILS') {
+    const currentDetail = summary.parentElement;
+    
+    // ΕΛΕΓΧΟΣ: Είναι αυτό που πατήσαμε Thread (έχει id t-...) ή Group;
+    const isThread = currentDetail.id.startsWith('t-');
+
+    if (isThread) {
+      // 1. ΕΝΗΜΕΡΩΣΗ SIDEBAR (Μόνο αν είναι thread)
+      const tid = currentDetail.id.replace('t-', '');
+      if (tid) {
+         renderChatUI(tid);
+         refreshAllTasksInThread(tid); // <--- ΑΥΤΗ ΕΙΝΑΙ Η ΓΡΑΜΜΗ ΠΟΥ ΠΡΟΣΤΕΘΗΚΕ! Φορτώνει τα Tasks αμέσως.
+      }
+
+      // 2. ACCORDION (Κλείνει μόνο τα άλλα Threads, ΟΧΙ τα Groups)
+      const container = currentDetail.closest('.emails-column');
+      if (container) {
+        // Ψάχνουμε μόνο details που το id τους ξεκινάει από "t-"
+        container.querySelectorAll('details[id^="t-"]').forEach((det) => {
+          if (det !== currentDetail && det.hasAttribute('open')) {
+            det.removeAttribute('open');
+          }
         });
       }
-      html += `<button class="btn-main" style="background:var(--green);" onclick="save()">💾 Αποθήκευση</button></div>`;
-      document.getElementById('previewArea').innerHTML = html;
     }
+  }
+});
 
-    function renderThread(t, isN) {
-      let latest = t.messages[t.messages.length-1];
-      return `<details style="border-bottom:1px solid var(--border);"><summary><div class="grid-row">
-        <div style="font-weight:bold; color:var(--primary); overflow:hidden; text-overflow:ellipsis;">${t.client}</div><div>${latest.from}</div><div>${latest.timestamp}</div><div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.subject}</div>
-      </div></summary><div style="padding:15px; background:rgba(0,0,0,0.02);">
-        <div style="display:flex; gap:10px; margin-bottom:10px;"><button class="btn-action" onclick="this.nextElementSibling.style.display='block'">⚙️ Prompt</button><button class="btn-action" style="background:var(--accent); color:#000;" onclick="getAI('${t.id}', this)">✨ AI Ανάλυση</button></div>
-        <textarea style="width:100%; height:80px; display:none; margin-top:5px; border-radius:5px; border:1px solid #ccc; padding:10px;">Ανάλυση.</textarea><div class="ai-box"></div>
-        ${(isN ? [...t.messages].reverse() : t.messages).map(m => {
-          const lines = m.body.split('<br>');
-          let short = m.body, hasT = lines.length > 7;
-          if(hasT) short = lines.slice(0, 7).join('<br>');
-          return `<div class="msg-full">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div><b>${m.from}</b> <small>${m.timestamp} ${m.diff}</small></div>
-            <button class="btn-action" onclick="loadFull(this, '${m.id}')">🎨 Full Mail</button>
-          </div>
-          <br><div class="m-body">${short}</div>
-          ${hasT ? `<button class="btn-read-more" onclick="tgl(this, \`${m.body.replace(/`/g, '\\`')}\`, \`${short.replace(/`/g, '\\`')}\`)">⬇️ Show more</button>` : ''}
-          <div class="full-mail-view" style="display:none; margin-top:15px; border:1px solid #999; border-radius:6px; background:white; overflow:hidden;">
-             <div style="background:#f1f3f4; padding:5px; text-align:right;"><button style="background:#d32f2f; color:white; border:none; padding:5px 12px; cursor:pointer; border-radius:3px;" onclick="this.parentElement.parentElement.style.display='none'">❌</button></div>
-             <iframe style="width:100%; height:500px; border:none;"></iframe>
-          </div>
-          </div>`;
-        }).join('')}
-      </div></details>`;
-    }
+function initResizer() {
+// Συνάρτηση που ενεργοποιεί τη διαχωριστική γραμμή ανάμεσα στις στήλες.
 
-    function tgl(btn, f, s) { const b = btn.previousElementSibling; if(btn.innerText.includes("more")){ b.innerHTML = f; btn.innerText = "⬆️ Show less"; } else { b.innerHTML = s; btn.innerText = "⬇️ Show more"; } }
+  const resizer = document.getElementById('dragMe');
+  // Εντοπισμός της γραμμής που "τραβάει" ο χρήστης.
+
+  if (!resizer) return;
+  // Αν η γραμμή δεν υπάρχει (π.χ. πριν φορτώσουν τα δεδομένα), σταμάτα την εκτέλεση.
+  
+  const leftSide = resizer.previousElementSibling;
+  // Η αριστερή πλευρά (Emails Column).
+
+  const container = resizer.parentElement;
+  // Το συνολικό πλαίσιο (Main Dashboard).
+
+  let x = 0;
+  let leftWidth = 0;
+  // Αρχικοποίηση μεταβλητών για τη θέση του ποντικιού και το πλάτος.
+
+  const mouseDownHandler = function (e) {
+  // Όταν ο χρήστης πατήσει το κουμπί του ποντικιού πάνω στη γραμμή:
+
+    x = e.clientX;
+    // Κατάγραψε την τωρινή οριζόντια θέση του ποντικιού.
+
+    leftWidth = leftSide.getBoundingClientRect().width;
+    // Μέτρησε πόσο φαρδιά είναι η αριστερή στήλη εκείνη τη στιγμή.
+
+    document.addEventListener('mousemove', mouseMoveHandler);
+    document.addEventListener('mouseup', mouseUpHandler);
+    // Ξεκίνα να παρακολουθείς την κίνηση του ποντικιού σε όλη την οθόνη.
+
+    resizer.classList.add('resizing');
+    // Πρόσθεσε κλάση CSS για οπτική ένδειξη (π.χ. αλλαγή χρώματος γραμμής).
+
+    document.body.style.cursor = 'col-resize';
+    // Άλλαξε το βελάκι του ποντικιού σε διπλό βέλος αυξομείωσης.
+  };
+
+  const mouseMoveHandler = function (e) {
+  // Όταν ο χρήστης σέρνει το ποντίκι:
+
+    const dx = e.clientX - x;
+    // Υπολόγισε πόσα pixels μετακινήθηκε το ποντίκι από το αρχικό σημείο.
+
+    const containerWidth = container.getBoundingClientRect().width;
+    // Μάθε το συνολικό πλάτος της οθόνης.
+
+    const newLeftWidth = ((leftWidth + dx) * 100) / containerWidth;
+    // Μετάτρεψε το νέο πλάτος σε ποσοστό (%) επί της εκατό.
     
-    function loadFull(btn, id) {
-      const v = btn.closest('.msg-full').querySelector('.full-mail-view');
-      btn.innerText = "⏳...";
-      google.script.run.withSuccessHandler(res => { 
-        btn.innerText = "🎨 Full Mail";
-        if (res.success) {
-          v.style.display = 'block';
-          const d = v.querySelector('iframe').contentWindow.document;
-          d.open(); d.write(res.body); d.close();
-        } else { alert("Σφάλμα: " + res.body); }
-      }).getFullEmailContent(id);
+    if (newLeftWidth > 15 && newLeftWidth < 85) {
+      leftSide.style.flex = `0 0 ${newLeftWidth}%`;
+    }
+    // Αν το πλάτος είναι λογικό (ούτε πολύ μικρό, ούτε πολύ μεγάλο), εφάρμοσέ το.
+  };
+
+  const mouseUpHandler = function () {
+  // Όταν ο χρήστης αφήσει το κουμπί του ποντικιού:
+
+    resizer.classList.remove('resizing');
+    // Αφαίρεσε το εφέ κίνησης από τη γραμμή.
+
+    document.body.style.cursor = 'default';
+    // Επαναφορά του ποντικιού στο κανονικό βελάκι.
+
+    document.removeEventListener('mousemove', mouseMoveHandler);
+    document.removeEventListener('mouseup', mouseUpHandler);
+    // Σταμάτα να παρακολουθείς την κίνηση.
+  };
+
+  resizer.addEventListener('mousedown', mouseDownHandler);
+  // Σύνδεσε το πάτημα του ποντικιού με την έναρξη της διαδικασίας.
+}
+
+function bulkSaveToBQ() {
+  const start = document.getElementById('singleDate').value;
+  const end = document.getElementById('endDate').value || start;
+  
+  if (!start) { 
+    alert("⚠️ Παρακαλώ επιλέξτε ημερομηνία έναρξης!"); 
+    return; 
+  }
+  
+  const btn = document.getElementById('btn-bulk-save');
+  const originalText = btn.innerHTML;
+  
+  // Κλείδωμα κουμπιού και οπτική ένδειξη
+  btn.disabled = true;
+  btn.innerHTML = "⏳ Προετοιμασία...";
+  btn.style.opacity = "0.7";
+
+  // Ξεκινάει το interval που ρωτάει το backend "πού βρισκόμαστε;"
+  const progressInterval = setInterval(() => {
+    google.script.run.withSuccessHandler(count => {
+      if (btn.disabled) {
+        btn.innerHTML = `⏳ Σώθηκαν: ${count} mails...`;
+      }
+    }).getImportProgress();
+  }, 1000);
+
+  // Κυρίως κλήση στον Server (Proxy)
+  google.script.run
+    .withSuccessHandler(total => {
+      clearInterval(progressInterval); // Σταματάμε το "ρολόι"
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      alert(`✅ Η αποθήκευση ολοκληρώθηκε!\n\nΣυνολικά προστέθηκαν ${total} νέα μηνύματα.`);
+    })
+    .withFailureHandler(err => {
+      clearInterval(progressInterval);
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      alert("❌ Σφάλμα συστήματος: " + err);
+    })
+    .bulkSaveActionProxy(start, end); // Στέλνουμε τις δύο ημερομηνίες
+}
+
+/* New Version 18-02-2026 - Delete Button Logic */
+function deleteTodayFromBQ() {
+  const dateVal = document.getElementById('singleDate').value;
+  if (!dateVal) { alert("⚠️ Επιλέξτε ημερομηνία!"); return; }
+
+  if (!confirm(`⚠️ ΠΡΟΣΟΧΗ!\n\nΘα διαγραφούν ΟΛΑ τα mails της ημερομηνίας ${dateVal} από τη BigQuery.\n\nΕίσαι σίγουρος;`)) return;
+
+  const btn = document.getElementById('btn-delete-bq');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = "⏳ Διαγραφή...";
+
+  google.script.run.withSuccessHandler(res => {
+    alert(res);
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }).deleteDateActionProxy(dateVal);
+}
+
+/* New Version 18-02-2026 - Toggle Grouping Logic */
+function toggleGroup(el) {
+  // Αν η τωρινή τιμή είναι ίδια με την προηγούμενη
+  if (lastGMode === el.value) {
+    el.checked = false; // Ξε-τσεκάρισμα του Radio
+    lastGMode = '';     // Μηδενισμός μνήμης
+  } else {
+    lastGMode = el.value; // Αποθήκευση νέας επιλογής
+  }
+  
+  // Κλήση της applyGlobal για να ανανεωθεί το UI
+  applyGlobal(); 
+}
+
+
+
+function toggleGroupBy(mode) {
+  // Αν πατήσεις το ίδιο κουμπί, απενεργοποίησε την ομαδοποίηση
+  lastGMode = (lastGMode === mode) ? '' : mode;
+  
+  // Ενημέρωση των κλάσεων στα κουμπιά για το οπτικό εφέ (active)
+  document.getElementById('btn-g-cons').classList.toggle('active', lastGMode === 'cons');
+  document.getElementById('btn-g-client').classList.toggle('active', lastGMode === 'client');
+  
+  applyGlobal(); // Επανασχεδιασμός της λίστας
+}
+
+
+
+/* New Version time stamp : 04-03-2026 02:00 
+   New Version lines : 89 
+   Prev Version time: stamp:04-03-2026 01:25 
+   Prev Version λινεσ 85 */
+
+let pendingMessageId = null;
+let currentActiveId = null;
+let pendingMessageObj = null;
+
+function showMenu(e, type, id) {
+  e.preventDefault();
+  currentActiveId = id;
+  const menu = document.getElementById('contextMenu');
+  
+  // Φιλτράρισμα: Στο mail δείχνουμε Αντιγραφή & Αφαίρεση, στο Thread δείχνουμε Σύνδεση
+  document.getElementById('cm-copy').style.display = (type === 'mail') ? 'block' : 'none';
+  document.getElementById('cm-remove').style.display = (type === 'mail') ? 'block' : 'none';
+  document.getElementById('cm-paste').style.display = (type === 'thread') ? 'block' : 'none';
+  
+  menu.style.display = 'block';
+  menu.style.left = e.pageX + 'px';
+  menu.style.top = e.pageY + 'px';
+  
+  document.addEventListener('click', () => menu.style.display = 'none', {once: true});
+}
+
+function copyMailId() {
+  pendingMessageId = String(currentActiveId).trim();
+  pendingMessageObj = null;
+
+  // Βρίσκουμε το mail μέσα στο rawData!
+  for (let i = 0; i < rawData.length; i++) {
+    if (!rawData[i].messages) continue;
+    const msg = rawData[i].messages.find(m => String(m.id) === pendingMessageId);
+    if (msg) {
+      pendingMessageObj = JSON.parse(JSON.stringify(msg)); 
+      break;
+    }
+  }
+
+  if (!pendingMessageObj) {
+    alert("⚠️ Σφάλμα: Δεν μπόρεσα να διαβάσω το Mail από τη μνήμη. Κάντε μια 'Αναφορά' και ξαναδοκιμάστε.");
+    return;
+  }
+
+  alert("✅ Αντιγράφηκε! Τώρα κάντε δεξί κλικ στον τίτλο ενός άλλου Thread και πατήστε 'Σύνδεση'.");
+}
+
+function pasteToThread() {
+  if (!pendingMessageId || !pendingMessageObj) {
+    alert("⚠️ Δεν έχει επιλεγεί Mail! Κάνε πρώτα 'Αντιγραφή για σύνδεση' πάνω στο mail που θέλεις.");
+    return;
+  }
+
+  const targetThreadId = String(currentActiveId).trim();
+  const sourceMailId = pendingMessageId;
+
+  // 1. Optimistic UI: Ζωγραφίζει το mail ακαριαία
+  const targetThread = rawData.find(t => String(t.id) === targetThreadId);
+  if (targetThread) {
+    if (!targetThread.messages.some(m => String(m.id) === sourceMailId)) {
+      targetThread.messages.push(pendingMessageObj);
+      targetThread.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      
+      applyGlobal(); 
+      setTimeout(() => {
+        const det = document.getElementById(`t-${targetThreadId}`);
+        if (det) det.open = true;
+      }, 100);
+    }
+  }
+
+  // 2. Ενημέρωση Βάσης
+  google.script.run
+    .withSuccessHandler(res => {
+      alert(res); 
+      pendingMessageId = null;
+      pendingMessageObj = null;
+    })
+    .withFailureHandler(err => alert("❌ Σφάλμα Βάσης: " + err))
+    .linkEmailToThread(sourceMailId, targetThreadId);
+}
+
+function removeFromThread() {
+  const sourceMailId = String(currentActiveId).trim(); 
+  if (!sourceMailId) return alert("⚠️ Σφάλμα: Δεν βρέθηκε το ID του μηνύματος.");
+
+  let targetThreadId = null;
+  let targetThread = null;
+  let msgIndex = -1;
+
+  for (let i = 0; i < rawData.length; i++) {
+    if (!rawData[i].messages) continue;
+    const index = rawData[i].messages.findIndex(m => String(m.id) === sourceMailId);
+    if (index !== -1) {
+      targetThreadId = rawData[i].id;
+      targetThread = rawData[i];
+      msgIndex = index;
+      break;
+    }
+  }
+
+  // 1. Optimistic UI: Ακαριαία αφαίρεση
+  if (targetThreadId && msgIndex !== -1) {
+     targetThread.messages.splice(msgIndex, 1);
+     applyGlobal(); 
+     
+     setTimeout(() => {
+        const det = document.getElementById(`t-${targetThreadId}`);
+        if (det && targetThread.messages.length > 0) det.open = true;
+      }, 100);
+  }
+
+  // 2. Ενημέρωση Βάσης
+  google.script.run
+    .withSuccessHandler(res => {
+      alert(res);
+      if (pendingMessageId === sourceMailId) {
+        pendingMessageId = null; 
+        pendingMessageObj = null;
+      }
+    })
+    .withFailureHandler(err => alert("❌ Σφάλμα Βάσης: " + err))
+    .unlinkEmailFromThread(sourceMailId, targetThreadId);
+}
+
+function refreshTaskGrid(mid, tid) {
+  const container = document.getElementById(`grid-${mid}`);
+  if (!container) return;
+
+  google.script.run.withSuccessHandler(tasks => {
+    if (!tasks || tasks.length === 0) {
+      container.innerHTML = '<div style="color:#999; font-size:11px; padding:5px;">Δεν υπάρχουν καταγεγραμμένα tasks για αυτό το mail.</div>';
+      return;
     }
 
-    function getAI(id, btn) { const box = btn.parentElement.nextElementSibling.nextElementSibling, p = btn.parentElement.nextElementSibling.value; btn.innerText="⏳..."; google.script.run.withSuccessHandler(ai => { box.innerHTML = ai; box.style.display="block"; btn.innerText="✨ AI"; }).getAiSummary(id, p); }
-    function save() { google.script.run.withSuccessHandler(()=>alert("Σώθηκε!")).saveToDrive(document.getElementById('finalReport').innerHTML, "Report"); }
-    function loadH() { google.script.run.withSuccessHandler(files => { historyFiles = files; renderHistoryList(); }).getHistory(); }
-    function renderHistoryList() {
-      const isNewest = document.querySelector('input[name="sM"]:checked').value === 'new';
-      const sorted = [...historyFiles].sort((a,b) => isNewest ? (b.created - a.created) : (a.created - b.created));
-      document.getElementById('historyList').innerHTML = sorted.map(f => `<div class="history-item"><span>📄 ${f.name}</span> <button class="btn-restore" onclick="google.script.run.withSuccessHandler(res=>document.getElementById('previewArea').innerHTML=res.html).getReportContent('${f.id}')">📂</button></div>`).join('');
-    }
-  </script>
+    let html = `<div style="display:grid; grid-template-columns: 1fr 120px 100px; gap:5px; background:#f0f0f0; padding:5px; font-weight:bold; font-size:11px; border-radius:4px;">
+                  <div>Εργασία</div><div>Status</div><div>Ώρα</div>
+                </div>`;
+    
+    tasks.forEach(task => {
+      let statusColor = task.sId == 12 ? '#2e7d32' : (task.sId == 3 ? '#1976d2' : '#666');
+      html += `<div style="display:grid; grid-template-columns: 1fr 120px 100px; gap:5px; padding:5px; font-size:12px; border-bottom:1px solid #eee; align-items:center;">
+                 <div style="font-weight:500;">${task.task}</div>
+                 <div style="color:white; background:${statusColor}; padding:2px 6px; border-radius:10px; text-align:center; font-size:10px;">${task.status}</div>
+                 <div style="color:#888; font-size:11px;">${task.date}</div>
+               </div>`;
+    });
+    container.innerHTML = html;
+  }).getMailTaskQueue(mid, tid);
+}
+
+function renderTaskHtml(container, tasks) {
+  if (!tasks || tasks.length === 0) {
+    container.innerHTML = '<div style="color:#999; font-size:11px; padding:5px;">Δεν υπάρχουν tasks.</div>';
+    return;
+  }
+  let html = `<div style="display:grid; grid-template-columns: 1fr 120px 100px; gap:5px; background:#f0f0f0; padding:5px; font-weight:bold; font-size:11px; border-radius:4px;">
+                <div>Εργασία</div><div>Status</div><div>Ώρα</div>
+              </div>`;
+  tasks.forEach(task => {
+    let statusColor = task.sId == 12 ? '#2e7d32' : (task.sId == 3 ? '#1976d2' : '#666');
+    html += `<div style="display:grid; grid-template-columns: 1fr 120px 100px; gap:5px; padding:5px; font-size:12px; border-bottom:1px solid #eee; align-items:center;">
+               <div style="font-weight:500;">${task.task}</div>
+               <div style="color:white; background:${statusColor}; padding:2px 6px; border-radius:10px; text-align:center; font-size:10px;">${task.status}</div>
+               <div style="color:#888; font-size:11px;">${task.date}</div>
+             </div>`;
+  });
+  container.innerHTML = html;
+}
+
+
+function refreshAllTasksInThread(tid) {
+// Συνάρτηση που ανανεώνει τα task grids όλων των μηνυμάτων ενός thread.
+
+  const thread = rawData.find(t => String(t.id) === String(tid));
+  // Εντοπισμός του thread στο rawData χρησιμοποιώντας αυστηρή σύγκριση String για τα IDs.
+
+  if (!thread || !thread.messages) return;
+  // Αν το thread δεν βρεθεί ή δεν έχει μηνύματα, σταμάτα για να αποφευχθεί σφάλμα.
+  
+  const mIds = thread.messages.map(m => m.id);
+  // Δημιουργία μιας λίστας με όλα τα IDs των μηνυμάτων του thread.
+
+  google.script.run.withSuccessHandler(allTasksMap => {
+  // Κάλεσε τον server (BigQuery) για να φέρει ΟΛΑ τα tasks για αυτά τα μηνύματα με ΜΙΑ κλήση (Bulk).
+
+    mIds.forEach(mId => {
+    // Για κάθε ID μηνύματος που επιστράφηκε:
+
+      const container = document.getElementById(`grid-${mId}`);
+      // Βρες το div-κοντέινερ (grid) που βρίσκεται κάτω από το συγκεκριμένο mail στο UI.
+
+      if (container) {
+        const tasksForThisMessage = allTasksMap[mId] || [];
+        renderTaskHtml(container, tasksForThisMessage);
+      }
+      // Αν το κοντέινερ υπάρχει, κάλεσε τη renderTaskHtml για να "ζωγραφίσει" τα νέα δεδομένα.
+    });
+  }).getBulkMailTaskQueue(mIds);
+  // Εκτέλεση της server-side συνάρτησης που φέρνει τα δεδομένα από τη BigQuery.
+}
+function triggerReanalyze() {
+  const openDetail = document.querySelector('.emails-column details[open]');
+  if (!openDetail) {
+    alert("Παρακαλώ ανοίξτε μια συνομιλία αριστερά.");
+    return;
+  }
+  const tid = openDetail.id.replace('t-', '');
+
+  const isConfirmed = confirm("⚠️ Προσοχή: Θα διαγραφούν οι υπάρχουσες αναλύσεις του AI για αυτό το thread και θα παραχθούν νέες. Συμφωνείτε;");
+  if (!isConfirmed) return;
+
+  // Καλούμε το AI απευθείας, περνώντας του την εντολή 'recreate'
+  runAI(tid, 'recreate'); 
+}
+
+
+
+
+</script>
+
+<div id="contextMenu" class="custom-cm">
+  <div id="cm-copy" class="cm-item" onclick="copyMailId()">🔗 Αντιγραφή για σύνδεση</div>
+  <div id="cm-paste" class="cm-item" onclick="pasteToThread()">📥 Σύνδεση με αυτό το Thread</div>
+  <div id="cm-remove" class="cm-item" onclick="removeFromThread()" style="color: var(--red);">🗑️ Αφαίρεση από Thread</div>
+</div>
+
+
 </body>
 </html>
