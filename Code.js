@@ -4,7 +4,7 @@
  * STRICT MAINTENANCE MODE: ON
  */
 
-const API_KEY = "AIzaSyBr7zgaTnsxmYP8hcjYs_SlYQWmhVZd6zo"; 
+const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
 const FOLDER_ID = "1xBKm0U79cnWQj3oTsNVz63HH65fgv-my"; 
 const SCRIPT_VERSION = "27/01 17:00"; 
 
