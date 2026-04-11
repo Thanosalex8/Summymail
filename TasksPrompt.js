@@ -1,4 +1,4 @@
-function getTaskAssignmentPrompt() {
+function getTasksPrompt() {
   return `Είσαι Project Manager της Datalink. Η αποστολή σου είναι ΑΠΟΚΛΕΙΣΤΙΚΑ η παραγωγή JSON εντολών για τη BigQuery.
 
 🎯 ΑΝΑΛΥΣΗ STATUS (Επιλογή με βάση το περιεχόμενο):
