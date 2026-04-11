@@ -889,42 +889,54 @@ function showTasks(response) {
   console.log("AI Response received. Updating UI...");
   
   try {
-    // 1. ΕΝΗΜΕΡΩΣΗ ΔΕΞΙΑΣ ΜΠΑΡΑΣ (Sidebar)
-    // ΑΛΛΑΓΗ: Χρήση του 'ai-sidebar-content' αντί για 'analysis-result'
-    const sidebar = document.getElementById('ai-sidebar-content'); 
+    // 1. ΕΝΤΟΠΙΣΜΟΣ ΤΟΥ CURRENT THREAD ID
+    // Το παίρνουμε από το ανοιχτό details στην αριστερή στήλη
+    const openDetail = document.querySelector('.emails-column details[open]');
+    if (!openDetail) {
+      console.warn("Δεν βρέθηκε ανοιχτό thread για ανανέωση.");
+      return;
+    }
+    const tid = openDetail.id.replace('t-', '');
+
+    // 2. ΕΝΗΜΕΡΩΣΗ ΔΕΞΙΑΣ ΜΠΑΡΑΣ (Sidebar)
+    // Στο δικό σου HTML το ID είναι 'global-ai-content'
+    const sidebar = document.getElementById('global-ai-content'); 
     
     if (sidebar) {
       if (response && response.includes('{')) {
         const cleanJson = response.replace(/```json/g, "").replace(/```/g, "").trim();
         const data = JSON.parse(cleanJson);
-        let html = "<div style='padding:10px;'><h3>📋 Συγκεντρωτικά Tasks</h3><ul style='list-style:none; padding:0;'>";
-        data.entries.forEach(entry => {
-          html += `<li style='margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;'>
-                     <span style='color:var(--green); font-weight:bold;'>Msg ${entry.msg_index}:</span> ${entry.task_name}
-                   </li>`;
-        });
-        html += "</ul></div>";
+        
+        // Χρησιμοποιούμε τη δική σου συνάρτηση generateTaskSummaryTable για ομοιομορφία
+        let html = `<div style="padding:15px;">
+                      <h3 style="color:var(--primary);">🤖 AI Task Analysis</h3>
+                      ${generateTaskSummaryTable(data.entries)}
+                    </div>`;
         sidebar.innerHTML = html;
       } else {
-        sidebar.innerHTML = response;
+        // Αν η AI επέστρεψε κείμενο αντί για JSON
+        sidebar.innerHTML = `<div style="padding:15px;">${response}</div>`;
       }
-    } else {
-      // Αν ακόμα δεν το βρίσκει, εκτύπωσε όλα τα IDs για να δούμε τι φταίει
-      console.warn("Σφάλμα: Το στοιχείο 'ai-sidebar-content' δεν βρέθηκε.");
     }
 
-    // 2. ΕΝΗΜΕΡΩΣΗ INLINE ΣΤΑ MAILS
-    if (typeof fetchThreadContent === "function") {
-      const currentId = document.getElementById('currentThreadId')?.value;
-      if (currentId) {
-        fetchThreadContent(currentId);
-      }
+    // 3. ΕΝΗΜΕΡΩΣΗ INLINE ΣΤΑ MAILS
+    // Καλούμε τη δική σου συνάρτηση refreshAllTasksInThread
+    if (typeof refreshAllTasksInThread === "function") {
+      console.log("Refreshing mail tasks for thread:", tid);
+      refreshAllTasksInThread(tid);
+    }
+
+    // 4. ΕΝΗΜΕΡΩΣΗ ΤΟΥ SIDEBAR HEADER (Για να συγχρονιστούν τα κουμπιά και η σύνοψη)
+    const thread = rawData.find(t => String(t.id) === String(tid));
+    if (thread && typeof syncTasksOnly === "function") {
+      syncTasksOnly(tid, thread);
     }
 
   } catch (e) {
     console.error("Error in showTasks logic:", e);
   }
 }
+
 
 function renderChatUI(tid, isAppend = false) {
   const cleanTid = String(tid).trim();
