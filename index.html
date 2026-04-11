@@ -832,15 +832,44 @@ function confirmAi(tid, msg, mode) {
 
 function syncTasksOnly(tid, thread) {
   const mIds = thread.messages.map(m => m.id);
+  
   google.script.run.withSuccessHandler(allTasksMap => {
     let allEntries = [];
-    Object.values(allTasksMap).forEach(tasks => {
-      tasks.forEach(t => {
-        allEntries.push({ task_name: t.task, status_id: t.sId, msg_index: [1] });
-      });
+    let messagesWithTasksCount = 0;
+
+    // 1. Μετράμε πόσα από τα μηνύματα του thread έχουν ήδη tasks στη βάση
+    mIds.forEach(mId => {
+      if (allTasksMap[mId] && allTasksMap[mId].length > 0) {
+        messagesWithTasksCount++;
+        // Μαζεύουμε τα entries για τον πίνακα σύνοψης (generateTaskSummaryTable)
+        allTasksMap[mId].forEach(t => {
+          allEntries.push({ task_name: t.task, status_id: t.sId, msg_index: [1] });
+        });
+      }
     });
 
-    // Ενημέρωση Πίνακα
+    // 2. Υπολογισμός Λεκτικού και Χρώματος Κουμπιού
+    const totalMsgs = mIds.length;
+    let btnLabel = "";
+    let btnColor = "";
+    let textColor = "white";
+
+    if (messagesWithTasksCount === 0) {
+      // ΚΑΝΕΝΑ mail δεν έχει task
+      btnLabel = "🚀 Αρχική ενημέρωση tasks";
+      btnColor = "var(--primary)"; // Μπλε
+    } else if (messagesWithTasksCount < totalMsgs) {
+      // Υπάρχουν νέα mails χωρίς tasks
+      btnLabel = "📩 Ενημέρωση νέων mails";
+      btnColor = "var(--accent)"; // Κίτρινο/Πορτοκαλί
+      textColor = "black";        // Για καλύτερη αντίθεση στο κίτρινο
+    } else {
+      // Όλα τα mails είναι καλυμμένα
+      btnLabel = "🔄 Επανενημέρωση tasks";
+      btnColor = "var(--green)";   // Πράσινο
+    }
+
+    // 3. Ενημέρωση του UI (Πίνακας)
     const taskContainer = document.getElementById('side-tasks-container');
     if (taskContainer) {
       taskContainer.innerHTML = allEntries.length > 0 
@@ -848,26 +877,25 @@ function syncTasksOnly(tid, thread) {
         : "<p style='color:#888; font-size:12px; text-align:center; padding:10px; border:1px dashed #ccc;'>Δεν υπάρχουν ενεργά Tasks.</p>";
     }
 
-    // Ενημέρωση Κουμπιών (Create ή Update)
+    // 4. Ενημέρωση των Buttons
     const actionsContainer = document.getElementById('task-actions');
     if (actionsContainer) {
-      const btnLabel = allEntries.length > 0 ? "🔄 Update Tasks" : "🚀 Create Tasks";
-      const btnColor = allEntries.length > 0 ? "var(--green)" : "var(--primary)";
       actionsContainer.innerHTML = `
-      
-
-      <button class="btn-main" 
-        style="flex:1; background:var(--green); margin:0; padding:10px; font-size:12px;" 
-        onclick="google.script.run.withSuccessHandler(showTasks).runTasksPrompt('19d7106341381d52')">
-    🔄 Update Tasks
-</button>
-
-       
-        <button class="btn-action" style="background:var(--red); color:white; width:40px; height:38px; border:none; border-radius:8px;" onclick="confirmDeleteTasks('${tid}')">🗑️</button>
+        <button class="btn-main" 
+                style="flex:1; background:${btnColor}; color:${textColor}; margin:0; padding:10px; font-size:12px; border:none; border-radius:8px; cursor:pointer;" 
+                onclick="google.script.run.withSuccessHandler(showTasks).runTasksPrompt('${tid}')">
+          ${btnLabel}
+        </button>
+        <button class="btn-action" 
+                style="background:var(--red); color:white; width:40px; height:38px; border:none; border-radius:8px; cursor:pointer;" 
+                onclick="confirmDeleteTasks('${tid}')">
+          🗑️
+        </button>
       `;
     }
   }).getBulkMailTaskQueue(mIds);
 }
+
 
 function copyJsonToClipboard(elementId) {
   const el = document.getElementById(elementId);
