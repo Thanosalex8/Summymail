@@ -38,7 +38,7 @@ function resetGlobalPrompt() {
 
 function checkLogin(user, pass) {
   if (user === ADMIN_USER && pass === ADMIN_PASS) return { success: true };
-  return { success: false, message: "Λάθος email ή κωδικός πρόσβασης..." };
+  return { success: false, message: "Λάθος email ή κωδικός πρόσβασης.." };
 }
 
 
