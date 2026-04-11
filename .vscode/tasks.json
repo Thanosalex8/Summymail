@@ -4,8 +4,8 @@
         {
             "label": "Save and Push All",
             "type": "shell",
-            // Καθαρές εντολές terminal χωρίς VS Code shortcuts
-            "command": "clasp push -f ; git add . ; git commit -m \"Update: $(date +'%Y-%m-%d %H:%M:%S')\" ; git push",
+            // Μόνο Git, χωρίς clasp
+            "command": "git add . && git commit -m \"Update: $(date +'%Y-%m-%d %H:%M:%S')\" && git push",
             "runOptions": {
                 "saveBeforeRun": "always" 
             },
@@ -18,6 +18,12 @@
                 "panel": "dedicated",
                 "focus": true,
                 "clear": true
+            },
+            "options": {
+                "shell": {
+                    "executable": "/bin/zsh",
+                    "args": ["-c"]
+                }
             },
             "problemMatcher": []
         }
