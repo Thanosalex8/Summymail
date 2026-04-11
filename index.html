@@ -855,7 +855,8 @@ function syncTasksOnly(tid, thread) {
       const btnColor = allEntries.length > 0 ? "var(--green)" : "var(--primary)";
       actionsContainer.innerHTML = `
       
-<button class="btn-main" 
+
+      <button class="btn-main" 
         style="flex:1; background:var(--green); margin:0; padding:10px; font-size:12px;" 
         onclick="google.script.run.withSuccessHandler(showTasks).runTasksPrompt('19d7106341381d52')">
     🔄 Update Tasks
