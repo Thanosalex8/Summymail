@@ -4,7 +4,8 @@
  * STRICT MAINTENANCE MODE: ON
  */
 
-const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+var API_KEY =  PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+var apiKey = API_KEY; // Έτσι δουλεύει ό,τι και να γράψεις μετά
 const FOLDER_ID = "1xBKm0U79cnWQj3oTsNVz63HH65fgv-my"; 
 const SCRIPT_VERSION = "27/01 17:00"; 
 
@@ -316,7 +317,7 @@ function getHistory() {
 }
 
 function LIST_MODELS() {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
   try {
     const response = UrlFetchApp.fetch(url);
     const data = JSON.parse(response.getContentText());
@@ -1554,5 +1555,31 @@ function deleteTasksForThread(tid) {
   } catch (e) {
     console.error("Delete Error: " + e.message);
     return "❌ Σφάλμα κατά τη διαγραφή: " + e.message;
+  }
+}
+
+function testConnection() {
+  try {
+    const key = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+    console.log("Το κλειδί που διάβασα είναι: " + (key ? "Βρέθηκε (OK)" : "ΔΕΝ ΒΡΕΘΗΚΕ"));
+    
+    if (!key) {
+      console.error("Σφάλμα: Το API_KEY είναι κενό στα Script Properties!");
+      return;
+    }
+
+    // Δοκιμαστική κλήση στο Gemini
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + key;
+    const response = UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify({ contents: [{ parts: [{ text: "Hi" }] }] }),
+      muteHttpExceptions: true
+    });
+    
+    console.log("Απάντηση Google: " + response.getResponseCode());
+    console.log("Body: " + response.getContentText());
+  } catch (e) {
+    console.error("DEBUG ERROR: " + e.toString());
   }
 }

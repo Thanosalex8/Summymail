@@ -1,20 +1,23 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=733558
-    // for the documentation about the tasks.json format
     "version": "2.0.0",
     "tasks": [
         {
             "label": "Save and Push All",
             "type": "shell",
-            // Η εντολή κάνει: 1. Clasp Push, 2. Git Add, 3. Git Commit με ημερομηνία, 4. Git Push
-            "command": "clasp push && git add . && git commit -m \"Update: $(date +'%Y-%m-%d %H:%M:%S')\" && git push",
+            // Καθαρές εντολές terminal χωρίς VS Code shortcuts
+            "command": "clasp push -f ; git add . ; git commit -m \"Update: $(date +'%Y-%m-%d %H:%M:%S')\" ; git push",
+            "runOptions": {
+                "saveBeforeRun": "always" 
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
             "presentation": {
                 "reveal": "always",
-                "panel": "new"
+                "panel": "dedicated",
+                "focus": true,
+                "clear": true
             },
             "problemMatcher": []
         }
