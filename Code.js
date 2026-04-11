@@ -1,7 +1,5 @@
-/**
+/*
  * SummyMail Pro - Backend (Code.gs)
- * Version: 27/01/2026_____
- * STRICT MAINTENANCE MODE: ON
  */
 
 var API_KEY =   PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
