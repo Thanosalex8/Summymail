@@ -857,7 +857,7 @@ function syncTasksOnly(tid, thread) {
       
 <button class="btn-main" 
         style="flex:1; background:var(--green); margin:0; padding:10px; font-size:12px;" 
-        onclick="google.script.run.withSuccessHandler(showResponse).runTasksPrompt('19d7106341381d52')">
+        onclick="google.script.run.withSuccessHandler(showTasks).runTasksPrompt('19d7106341381d52')">
     🔄 Update Tasks
 </button>
 
@@ -882,6 +882,43 @@ function copyJsonToClipboard(elementId) {
     console.error('Failed to copy: ', err);
     alert("❌ Αποτυχία αντιγραφής.");
   });
+}
+
+function showTasks(response) {
+  try {
+    // ΚΑΘΑΡΙΣΜΟΣ & PARSING
+    const cleanJson = response.replace(/```json/g, "").replace(/```/g, "").trim();
+    const data = JSON.parse(cleanJson);
+
+    // ΔΟΥΛΕΙΑ 1: ΕΝΗΜΕΡΩΣΗ ΔΕΞΙΑΣ ΜΠΑΡΑΣ (Συγκεντρωτικά)
+    const sidebarDiv = document.getElementById('ai-sidebar-content'); // Βεβαιώσου ότι αυτό είναι το ID της μπάρας σου
+    if (sidebarDiv) {
+      let html = "<h3>📋 Συγκεντρωτικά Tasks</h3><ul>";
+      data.entries.forEach(entry => {
+        html += `<li><b>Msg ${entry.msg_index}:</b> ${entry.task_name} <br> 
+                 <small>Status: ${entry.status_id} - ${entry.reason}</small></li>`;
+      });
+      html += "</ul>";
+      sidebarDiv.innerHTML = html;
+    }
+
+    // ΔΟΥΛΕΙΑ 2: ΕΝΗΜΕΡΩΣΗ ΣΤΑ MAILS (Inline)
+    // Εδώ καλούμε τη συνάρτηση που ήδη έχεις για να ξαναφορτώσει το thread.
+    // Αυτό θα προκαλέσει την επανεκτέλεση των "getMailTaskQueue" για κάθε μήνυμα.
+    if (typeof refreshCurrentThread === "function") {
+      refreshCurrentThread(); 
+    } else {
+      // Αν δεν έχεις συνάρτηση refresh, καλούμε την αρχική φόρτωση
+      loadMessages('19d7106341381d52'); 
+    }
+
+    console.log("✅ Tasks updated in Sidebar and Mail History.");
+
+  } catch (e) {
+    console.error("Error in showTasks:", e);
+    // Αν αποτύχει το JSON (π.χ. η AI έβγαλε απλό κείμενο), το δείχνουμε ως έχει στη μπάρα
+    document.getElementById('ai-sidebar-content').innerHTML = response;
+  }
 }
 
 function renderChatUI(tid, isAppend = false) {
