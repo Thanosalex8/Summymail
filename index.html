@@ -890,7 +890,9 @@ function showTasks(response) {
   
   try {
     // 1. ΕΝΗΜΕΡΩΣΗ ΔΕΞΙΑΣ ΜΠΑΡΑΣ (Sidebar)
-    const sidebar = document.getElementById('analysis-result'); 
+    // ΑΛΛΑΓΗ: Χρήση του 'ai-sidebar-content' αντί για 'analysis-result'
+    const sidebar = document.getElementById('ai-sidebar-content'); 
+    
     if (sidebar) {
       if (response && response.includes('{')) {
         const cleanJson = response.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -907,13 +909,12 @@ function showTasks(response) {
         sidebar.innerHTML = response;
       }
     } else {
-      console.warn("Sidebar element 'analysis-result' not found.");
+      // Αν ακόμα δεν το βρίσκει, εκτύπωσε όλα τα IDs για να δούμε τι φταίει
+      console.warn("Σφάλμα: Το στοιχείο 'ai-sidebar-content' δεν βρέθηκε.");
     }
 
     // 2. ΕΝΗΜΕΡΩΣΗ INLINE ΣΤΑ MAILS
-    // Στον κώδικά σου η συνάρτηση λέγεται fetchThreadContent
     if (typeof fetchThreadContent === "function") {
-      // Παίρνουμε το threadId από το UI για να ξέρουμε τι να φρεσκάρουμε
       const currentId = document.getElementById('currentThreadId')?.value;
       if (currentId) {
         fetchThreadContent(currentId);
@@ -922,11 +923,8 @@ function showTasks(response) {
 
   } catch (e) {
     console.error("Error in showTasks logic:", e);
-    const sidebar = document.getElementById('analysis-result');
-    if (sidebar) sidebar.innerHTML = "❌ Σφάλμα εμφάνισης: " + e.message;
   }
 }
-
 
 function renderChatUI(tid, isAppend = false) {
   const cleanTid = String(tid).trim();
