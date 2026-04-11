@@ -854,7 +854,14 @@ function syncTasksOnly(tid, thread) {
       const btnLabel = allEntries.length > 0 ? "🔄 Update Tasks" : "🚀 Create Tasks";
       const btnColor = allEntries.length > 0 ? "var(--green)" : "var(--primary)";
       actionsContainer.innerHTML = `
-        <button class="btn-main" style="flex:1; background:${btnColor}; margin:0; padding:10px; font-size:12px;" onclick="runAI('${tid}', 'tasks')">${btnLabel}</button>
+      
+<button class="btn-main" 
+        style="flex:1; background:var(--green); margin:0; padding:10px; font-size:12px;" 
+        onclick="google.script.run.withSuccessHandler(showResponse).runTasksPrompt('19d7106341381d52')">
+    🔄 Update Tasks
+</button>
+
+       
         <button class="btn-action" style="background:var(--red); color:white; width:40px; height:38px; border:none; border-radius:8px;" onclick="confirmDeleteTasks('${tid}')">🗑️</button>
       `;
     }
