@@ -886,41 +886,47 @@ function copyJsonToClipboard(elementId) {
 }
 
 function showTasks(response) {
+  console.log("AI Response received. Updating UI...");
+  
   try {
-    // ΚΑΘΑΡΙΣΜΟΣ & PARSING
-    const cleanJson = response.replace(/```json/g, "").replace(/```/g, "").trim();
-    const data = JSON.parse(cleanJson);
-
-    // ΔΟΥΛΕΙΑ 1: ΕΝΗΜΕΡΩΣΗ ΔΕΞΙΑΣ ΜΠΑΡΑΣ (Συγκεντρωτικά)
-    const sidebarDiv = document.getElementById('ai-sidebar-content'); // Βεβαιώσου ότι αυτό είναι το ID της μπάρας σου
-    if (sidebarDiv) {
-      let html = "<h3>📋 Συγκεντρωτικά Tasks</h3><ul>";
-      data.entries.forEach(entry => {
-        html += `<li><b>Msg ${entry.msg_index}:</b> ${entry.task_name} <br> 
-                 <small>Status: ${entry.status_id} - ${entry.reason}</small></li>`;
-      });
-      html += "</ul>";
-      sidebarDiv.innerHTML = html;
-    }
-
-    // ΔΟΥΛΕΙΑ 2: ΕΝΗΜΕΡΩΣΗ ΣΤΑ MAILS (Inline)
-    // Εδώ καλούμε τη συνάρτηση που ήδη έχεις για να ξαναφορτώσει το thread.
-    // Αυτό θα προκαλέσει την επανεκτέλεση των "getMailTaskQueue" για κάθε μήνυμα.
-    if (typeof refreshCurrentThread === "function") {
-      refreshCurrentThread(); 
+    // 1. ΕΝΗΜΕΡΩΣΗ ΔΕΞΙΑΣ ΜΠΑΡΑΣ (Sidebar)
+    const sidebar = document.getElementById('analysis-result'); 
+    if (sidebar) {
+      if (response && response.includes('{')) {
+        const cleanJson = response.replace(/```json/g, "").replace(/```/g, "").trim();
+        const data = JSON.parse(cleanJson);
+        let html = "<div style='padding:10px;'><h3>📋 Συγκεντρωτικά Tasks</h3><ul style='list-style:none; padding:0;'>";
+        data.entries.forEach(entry => {
+          html += `<li style='margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;'>
+                     <span style='color:var(--green); font-weight:bold;'>Msg ${entry.msg_index}:</span> ${entry.task_name}
+                   </li>`;
+        });
+        html += "</ul></div>";
+        sidebar.innerHTML = html;
+      } else {
+        sidebar.innerHTML = response;
+      }
     } else {
-      // Αν δεν έχεις συνάρτηση refresh, καλούμε την αρχική φόρτωση
-      loadMessages('19d7106341381d52'); 
+      console.warn("Sidebar element 'analysis-result' not found.");
     }
 
-    console.log("✅ Tasks updated in Sidebar and Mail History.");
+    // 2. ΕΝΗΜΕΡΩΣΗ INLINE ΣΤΑ MAILS
+    // Στον κώδικά σου η συνάρτηση λέγεται fetchThreadContent
+    if (typeof fetchThreadContent === "function") {
+      // Παίρνουμε το threadId από το UI για να ξέρουμε τι να φρεσκάρουμε
+      const currentId = document.getElementById('currentThreadId')?.value;
+      if (currentId) {
+        fetchThreadContent(currentId);
+      }
+    }
 
   } catch (e) {
-    console.error("Error in showTasks:", e);
-    // Αν αποτύχει το JSON (π.χ. η AI έβγαλε απλό κείμενο), το δείχνουμε ως έχει στη μπάρα
-    document.getElementById('ai-sidebar-content').innerHTML = response;
+    console.error("Error in showTasks logic:", e);
+    const sidebar = document.getElementById('analysis-result');
+    if (sidebar) sidebar.innerHTML = "❌ Σφάλμα εμφάνισης: " + e.message;
   }
 }
+
 
 function renderChatUI(tid, isAppend = false) {
   const cleanTid = String(tid).trim();
