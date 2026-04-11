@@ -4,7 +4,7 @@
  * STRICT MAINTENANCE MODE: ON
  */
 
-var API_KEY =  PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+var API_KEY =   PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
 var apiKey = API_KEY; // Έτσι δουλεύει ό,τι και να γράψεις μετά
 const FOLDER_ID =  "1xBKm0U79cnWQj3oTsNVz63HH65fgv-my"; 
 const SCRIPT_VERSION = "27/01 17:00"; 
