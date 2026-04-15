@@ -1329,62 +1329,6 @@ function getTaskAssignmentPrompt() {
 }
 
 
-function getBulkMailTaskQueue(messageIds, threadId) {
-  const projectId = 'gen-lang-client-0465952145';
-  const datasetId = 'summy_logs';
-  
-  if (!messageIds || messageIds.length === 0) return {};
-  
-  try {
-    // Χρησιμοποιούμε το threadId που μας έρχεται απέξω, 
-    // αν δεν υπάρχει, τότε μόνο δοκιμάζουμε το GmailApp (ως fallback)
-    const finalThreadId = threadId || (messageIds[0] ? GmailApp.getMessageById(messageIds[0]).getThread().getId() : null);
-    
-    if (!finalThreadId) {
-      console.warn("No Thread ID found for BQ query.");
-      return {};
-    }
-
-    const sql = `
-      SELECT 
-        tl.message_id, 
-        t.task_name, 
-        ts.status_name, 
-        tl.status_id, 
-        tl.updated_at
-      FROM \`${projectId}.${datasetId}.task_lines\` tl
-      LEFT JOIN \`${projectId}.${datasetId}.tasks\` t ON tl.task_id = t.task_id
-      LEFT JOIN \`${projectId}.${datasetId}.task_status\` ts ON tl.status_id = ts.status_id
-      WHERE tl.thread_id = '${finalThreadId}'
-      ORDER BY tl.updated_at DESC
-    `;
-    
-    const res = BigQuery.Jobs.query({ query: sql, useLegacySql: false }, projectId);
-    const results = {};
-    
-    messageIds.forEach(id => { results[id] = []; });
-    
-    if (res.rows) {
-      res.rows.forEach(r => {
-        const mId = r.f[0].v;
-        if (results[mId]) {
-          results[mId].push({
-            task: r.f[1].v,
-            status: r.f[2].v || "Pending",
-            sId: r.f[3].v,
-            // Το * 1000 χρειάζεται αν η BQ αποθηκεύει σε δευτερόλεπτα (Unix timestamp)
-            date: r.f[4].v ? Utilities.formatDate(new Date(Number(r.f[4].v)), "Europe/Athens", "HH:mm") : ""
-          });
-        }
-      });
-    }
-    return results; 
-    
-  } catch(e) { 
-    console.error("BQ Query Error: " + e.message);
-    return {}; 
-  }
-}
 
 function runAIServer(threadId, mode) {
   try {
