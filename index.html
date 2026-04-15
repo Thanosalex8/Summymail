@@ -973,20 +973,20 @@ function renderChatUI(tid, isAppend = false) {
   
   if (!thread) return;
 
-  // ΕΔΩ ΕΙΝΑΙ Η ΔΙΟΡΘΩΣΗ: Αν δεν έχει ιστορικό, ζήτα το από τη BigQuery
+  // 1. Αν δεν υπάρχει ιστορικό, το φέρνουμε
   if (!isAppend && (thread.chatHistory === undefined || thread.chatHistory === null)) {
     globalChat.innerHTML = '<div style="padding:40px; text-align:center; color:#888;"><p>⏳ Ανάκτηση ανάλυσης από BigQuery...</p></div>';
     
     google.script.run
       .withSuccessHandler(history => {
-        thread.chatHistory = history || []; // Γέμισε τη μνήμη
-        renderChatUI(tid); // Ξανατρέξε για να σχεδιάσεις
+        thread.chatHistory = history || []; 
+        renderChatUI(tid); // Επανακλήση μετά την ανάκτηση
       })
       .fetchChatHistoryFromBQ(cleanTid);
-    return; // Σταμάτα εδώ μέχρι να έρθει η απάντηση
+    return; // Σταματάμε εδώ, η επόμενη renderChatUI θα τα καλέσει όλα
   }
 
-  // Σχεδιασμός του Header (Πελάτης & Tasks)
+  // 2. Σχεδιασμός Header & Tasks (ΜΟΝΟ αν δεν είναι Append)
   if (!isAppend) {
     globalChat.innerHTML = `
       <div id="side-header-fixed" style="padding:15px; border-bottom:1px solid var(--border); background:var(--bg-card); position:sticky; top:0; z-index:100;">
@@ -996,10 +996,11 @@ function renderChatUI(tid, isAppend = false) {
       </div>
       <div id="side-chat-stream" style="padding:15px;"></div>`;
     
-    syncTasksOnly(tid, thread); // Αυτό δουλεύει ήδη
+    // ΚΑΛΟΥΜΕ ΤΑ TASKS ΜΟΝΟ ΕΔΩ
+    syncTasksOnly(tid, thread); 
   }
 
-  // Σχεδιασμός των μηνυμάτων του Chat
+  // 3. Σχεδιασμός μηνυμάτων Chat
   const chatStream = document.getElementById('side-chat-stream');
   if (chatStream && thread.chatHistory) {
     chatStream.innerHTML = thread.chatHistory.map(m => {
@@ -1013,7 +1014,6 @@ function renderChatUI(tid, isAppend = false) {
         </div>`;
     }).join('');
   }
-
   globalChat.scrollTop = globalChat.scrollHeight;
 }
 
