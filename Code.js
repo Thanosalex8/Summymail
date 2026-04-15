@@ -1592,8 +1592,7 @@ function testConnection() {
 
 
 /**
- * Εξειδικευμένη συνάρτηση για την επεξεργασία Tasks.
- * Στέλνει όλο το thread στην AI για context, αλλά ζητάει ανάλυση μόνο για τα νέα mails.
+ * ΔΙΟΡΘΩΜΕΝΗ: runTasksPrompt
  */
 function runTasksPrompt(threadId) {
   try {
@@ -1601,18 +1600,17 @@ function runTasksPrompt(threadId) {
     if (!thread) throw new Error("Thread not found: " + threadId);
 
     const messages = thread.getMessages();
+    
+    // ΔΙΟΡΘΩΣΗ: Χρήση .getId() αντί για .id
     const mIds = messages.map(m => m.getId());
 
-    // 1. Φέρνουμε τα υπάρχοντα tasks από τη BigQuery για να ξέρουμε ποια mails να κάνουμε SKIP
-    // ΣΗΜΑΝΤΙΚΟ: Περνάμε το threadId ρητά για να αποφύγουμε το BQ Error
+    // 1. Φέρνουμε τα υπάρχοντα tasks (Περνάμε το threadId ρητά)
     const existingTasksMap = getBulkMailTaskQueue(mIds, threadId); 
     
-    // 2. Προετοιμασία κειμένου για την AI με έξυπνη σήμανση (Status Labels)
+    // 2. Προετοιμασία κειμένου για την AI
     const fullText = messages.map((m, index) => {
       const mId = m.getId();
-      // Έλεγχος αν το συγκεκριμένο mail έχει ήδη καταγεγραμμένα tasks
       const hasTasks = existingTasksMap[mId] && existingTasksMap[mId].length > 0;
-      
       const statusLabel = hasTasks ? "--- (ALREADY LOGGED - SKIP) ---" : "--- (NEW MESSAGE - ANALYZE) ---";
       
       return `${statusLabel}
@@ -1622,23 +1620,79 @@ function runTasksPrompt(threadId) {
 ${m.getPlainBody()}`;
     }).join("\n\n---\n\n");
 
-    // 3. Λήψη του Prompt (από TasksPrompt.js) και κλήση της AI
     const systemPrompt = getTasksPrompt(); 
     const response = callGemini(fullText, systemPrompt);
     
-    // 4. Αποθήκευση των αποτελεσμάτων στη BigQuery
+    // 3. Αποθήκευση
     if (response && !response.includes("❌ Σφάλμα")) {
-      // Η StoreTasks θα χρησιμοποιήσει το response για να γράψει μόνο τα NEW
       StoreTasks(threadId, response);
     }
 
     return response;
     
   } catch (e) {
-    console.error("Σφάλμα στη ροή runTasksPrompt: " + e.message);
+    console.error("Σφάλμα στη runTasksPrompt: " + e.message);
     return "❌ Σφάλμα: " + e.message;
   }
 }
+
+/**
+ * ΔΙΟΡΘΩΜΕΝΗ: getBulkMailTaskQueue
+ */
+function getBulkMailTaskQueue(messageIds, threadId) {
+  const projectId = 'gen-lang-client-0465952145';
+  const datasetId = 'summy_logs';
+  
+  if (!messageIds || messageIds.length === 0) return {};
+  
+  try {
+    // Χρησιμοποιούμε το threadId που έχουμε ήδη, χωρίς να καλούμε το GmailApp
+    if (!threadId) {
+       console.warn("getBulkMailTaskQueue: Missing threadId");
+       return {};
+    }
+
+    const sql = `
+      SELECT 
+        tl.message_id, 
+        t.task_name, 
+        ts.status_name, 
+        tl.status_id, 
+        tl.updated_at
+      FROM \`${projectId}.${datasetId}.task_lines\` tl
+      LEFT JOIN \`${projectId}.${datasetId}.tasks\` t ON tl.task_id = t.task_id
+      LEFT JOIN \`${projectId}.${datasetId}.task_status\` ts ON tl.status_id = ts.status_id
+      WHERE tl.thread_id = '${threadId}'
+      ORDER BY tl.updated_at DESC
+    `;
+    
+    const res = BigQuery.Jobs.query({ query: sql, useLegacySql: false }, projectId);
+    const results = {};
+    
+    messageIds.forEach(id => { results[id] = []; });
+    
+    if (res.rows) {
+      res.rows.forEach(r => {
+        const mId = r.f[0].v;
+        if (results[mId]) {
+          results[mId].push({
+            task: r.f[1].v,
+            status: r.f[2].v || "Pending",
+            sId: r.f[3].v,
+            // Διόρθωση Timestamp: Η BQ επιστρέφει millis, δεν θέλει * 1000
+            date: r.f[4].v ? Utilities.formatDate(new Date(Number(r.f[4].v)), "Europe/Athens", "HH:mm") : ""
+          });
+        }
+      });
+    }
+    return results; 
+    
+  } catch(e) { 
+    console.error("BQ Query Error: " + e.message);
+    return {}; 
+  }
+}
+
 
 
   try {
