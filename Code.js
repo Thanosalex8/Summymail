@@ -1028,150 +1028,6 @@ function fetchChatHistoryFromBQ(threadId) {
   }
 }
 
-/**
- * 1. Η ΚΕΝΤΡΙΚΗ ΣΥΝΑΡΤΗΣΗ (Ανάλυση & Εντολή)
- */
-function runTasksPrompt(threadId) {
-  try {
-    const thread = GmailApp.getThreadById(threadId);
-    if (!thread) throw new Error("Thread not found: " + threadId);
-
-    const messages = thread.getMessages();
-    // Χρήση .getId() (μέθοδος) αντί για .id για να αποφύγουμε το undefined
-    const mIds = messages.map(m => m.getId());
-
-    // 1. Φέρνουμε τα υπάρχοντα tasks (Περνάμε το threadId ρητά για να μην ψάχνει το Gmail API)
-    const existingTasksMap = getBulkMailTaskQueue(mIds, threadId); 
-    
-    // 2. Προετοιμασία κειμένου για την AI
-    const fullText = messages.map((m, index) => {
-      const mId = m.getId();
-      const hasTasks = existingTasksMap[mId] && existingTasksMap[mId].length > 0;
-      const statusLabel = hasTasks ? "--- (ALREADY LOGGED - SKIP) ---" : "--- (NEW MESSAGE - ANALYZE) ---";
-      
-      return `${statusLabel}
-ΑΠΟ: ${m.getFrom()}
-ΗΜΕΡΟΜΗΝΙΑ: ${m.getDate()}
-ΜΗΝΥΜΑ #${index + 1}:
-${m.getPlainBody()}`;
-    }).join("\n\n---\n\n");
-
-    // Χρήση του getTasksPrompt() που έχεις ήδη στον κώδικα
-    const systemPrompt = getTasksPrompt(); 
-    const response = callGemini(fullText, systemPrompt);
-    
-    // 3. Αποθήκευση
-    if (response && !response.includes("❌ Σφάλμα")) {
-      StoreTasks(threadId, response);
-    }
-
-    return response;
-    
-  } catch (e) {
-    console.error("Σφάλμα στη runTasksPrompt: " + e.message);
-    return "❌ Σφάλμα: " + e.message;
-  }
-}
-
-/**
- * 2. Η ΣΥΝΑΡΤΗΣΗ ΑΝΑΓΝΩΣΗΣ ΑΠΟ BIGQUERY
- * ΘΩΡΑΚΙΣΜΕΝΗ: Δεν χρησιμοποιεί πλέον το GmailApp.getMessageById
- */
-function getBulkMailTaskQueue(messageIds, threadId) {
-  const projectId = 'gen-lang-client-0465952145';
-  const datasetId = 'summy_logs';
-  
-  if (!messageIds || messageIds.length === 0 || !threadId) return {};
-  
-  try {
-    const sql = `
-      SELECT tl.message_id, t.task_name, ts.status_name, tl.status_id, tl.updated_at
-      FROM \`${projectId}.${datasetId}.task_lines\` tl
-      LEFT JOIN \`${projectId}.${datasetId}.tasks\` t ON tl.task_id = t.task_id
-      LEFT JOIN \`${projectId}.${datasetId}.task_status\` ts ON tl.status_id = ts.status_id
-      WHERE tl.thread_id = '${threadId}'
-      ORDER BY tl.updated_at DESC
-    `;
-    
-    const res = BigQuery.Jobs.query({ query: sql, useLegacySql: false }, projectId);
-    const results = {};
-    messageIds.forEach(id => { results[id] = []; });
-    
-    if (res.rows) {
-      res.rows.forEach(r => {
-        const mId = r.f[0].v;
-        if (results[mId]) {
-          results[mId].push({
-            task: r.f[1].v,
-            status: r.f[2].v || "Pending",
-            sId: r.f[3].v,
-            date: r.f[4].v ? Utilities.formatDate(new Date(Number(r.f[4].v)), "Europe/Athens", "HH:mm") : ""
-          });
-        }
-      });
-    }
-    return results; 
-  } catch(e) { 
-    console.error("BQ Query Error (BulkQueue): " + e.message);
-    return {}; 
-  }
-}
-
-/**
- * 3. Η ΣΥΝΑΡΤΗΣΗ ΑΠΟΘΗΚΕΥΣΗΣ
- */
-function StoreTasks(threadId, aiResponse) {
-  const projectId = 'gen-lang-client-0465952145';
-  const datasetId = 'summy_logs';
-
-  try {
-    const cleanJson = aiResponse.replace(/```json/g, "").replace(/```/g, "").trim();
-    const data = JSON.parse(cleanJson);
-    if (!data.entries || !Array.isArray(data.entries)) return;
-
-    const thread = GmailApp.getThreadById(threadId);
-    const messages = thread.getMessages();
-    const customer = getClientDomain(thread); 
-    const consultant = extractConsultant(thread);
-
-    let currentMaxId = 100;
-    const maxRes = BigQuery.Jobs.query({ query: `SELECT MAX(task_id) FROM \`${projectId}.${datasetId}.tasks\``, useLegacySql: false }, projectId);
-    if (maxRes.rows && maxRes.rows[0].f[0].v) currentMaxId = parseInt(maxRes.rows[0].f[0].v);
-
-    const taskMap = {};
-    const newTasksSQL = [];
-    const newLinesSQL = [];
-    const esc = (s) => String(s || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n|\r/g, " ");
-
-    data.entries.forEach(entry => {
-      const idx = parseInt(entry.msg_index) - 1;
-      if (messages[idx]) {
-        const mId = messages[idx].getId();
-        let tId = entry.task_id;
-        const tName = esc(entry.task_name);
-
-        if (tId === "NEW") {
-          if (!taskMap[tName]) {
-            currentMaxId++;
-            taskMap[tName] = currentMaxId;
-            newTasksSQL.push(`(${currentMaxId}, '${tName}')`);
-          }
-          tId = taskMap[tName];
-        }
-        newLinesSQL.push(`('${mId}', '${threadId}', ${tId}, ${entry.status_id}, '${esc(customer)}', '${esc(consultant)}', CURRENT_TIMESTAMP())`);
-      }
-    });
-
-    if (newTasksSQL.length > 0) {
-      BigQuery.Jobs.query({ query: `INSERT INTO \`${projectId}.${datasetId}.tasks\` (task_id, task_name) VALUES ${newTasksSQL.join(",")}`, useLegacySql: false }, projectId);
-    }
-    if (newLinesSQL.length > 0) {
-      BigQuery.Jobs.query({ query: `INSERT INTO \`${projectId}.${datasetId}.task_lines\` (message_id, thread_id, task_id, status_id, customer_name, consultant_name, updated_at) VALUES ${newLinesSQL.join(",")}`, useLegacySql: false }, projectId);
-    }
-  } catch (e) {
-    console.error("StoreTasks Error: " + e.message);
-  }
-}
 
 
 
@@ -1680,21 +1536,81 @@ function testConnection() {
 }
 
 
+/**
+ * ΣΥΝΑΡΤΗΣΗ 1: Ανάκτηση Tasks από BigQuery
+ * Χρησιμοποιεί το threadId για μέγιστη ασφάλεια και ταχύτητα.
+ */
+function getBulkMailTaskQueue(messageIds, threadId) {
+  const projectId = 'gen-lang-client-0465952145';
+  const datasetId = 'summy_logs';
+  
+  // Αν δεν έχουμε IDs ή threadId, επιστρέφουμε άδειο αντικείμενο αμέσως
+  if (!messageIds || messageIds.length === 0 || !threadId) return {};
+  
+  try {
+    const sql = `
+      SELECT 
+        tl.message_id, 
+        t.task_name, 
+        ts.status_name, 
+        tl.status_id, 
+        tl.updated_at
+      FROM \`${projectId}.${datasetId}.task_lines\` tl
+      LEFT JOIN \`${projectId}.${datasetId}.tasks\` t ON tl.task_id = t.task_id
+      LEFT JOIN \`${projectId}.${datasetId}.task_status\` ts ON tl.status_id = ts.status_id
+      WHERE tl.thread_id = '${threadId}'
+      ORDER BY tl.updated_at DESC
+    `;
+    
+    const res = BigQuery.Jobs.query({ query: sql, useLegacySql: false }, projectId);
+    const results = {};
+    
+    // Αρχικοποίηση όλων των messageIds με άδειο array
+    messageIds.forEach(id => { results[id] = []; });
+    
+    if (res.rows) {
+      res.rows.forEach(r => {
+        const mId = r.f[0].v;
+        if (results[mId]) {
+          results[mId].push({
+            task: r.f[1].v,
+            status: r.f[2].v || "Pending",
+            sId: r.f[3].v,
+            // Format ώρας Ελλάδος
+            date: r.f[4].v ? Utilities.formatDate(new Date(Number(r.f[4].v)), "Europe/Athens", "HH:mm") : ""
+          });
+        }
+      });
+    }
+    return results; 
+    
+  } catch(e) { 
+    console.error("BQ Query Error (getBulkMailTaskQueue): " + e.message);
+    return {}; 
+  }
+}
 
-
-
-
+/**
+ * ΣΥΝΑΡΤΗΣΗ 2: Η κεντρική ροή ανάλυσης Tasks
+ * Στέλνει το thread στην AI και δρομολογεί την αποθήκευση.
+ */
+function runTasksPrompt(threadId) {
   try {
     const thread = GmailApp.getThreadById(threadId);
-    const messages = thread.getMessages();
-    const mIds = messages.map(m => m.id);
+    if (!thread) throw new Error("Thread not found: " + threadId);
 
-    // 1. Βρίσκουμε ποια μηνύματα έχουν ΗΔΗ tasks στη BigQuery
-    const existingTasksMap = getBulkMailTaskQueue(mIds); 
+    const messages = thread.getMessages();
     
-    // 2. Προετοιμασία κειμένου με ένδειξη (ALREADY LOGGED)
+    // ΚΡΙΣΙΜΟ: Χρήση .getId() για να έχουμε έγκυρα IDs μηνυμάτων
+    const mIds = messages.map(m => m.getId());
+
+    // 1. Φέρνουμε τα υπάρχοντα tasks από τη BQ
+    const existingTasksMap = getBulkMailTaskQueue(mIds, threadId); 
+    
+    // 2. Προετοιμασία κειμένου για την AI με σήμανση SKIP/ANALYZE
     const fullText = messages.map((m, index) => {
-      const hasTasks = existingTasksMap[m.id] && existingTasksMap[m.id].length > 0;
+      const mId = m.getId();
+      const hasTasks = existingTasksMap[mId] && existingTasksMap[mId].length > 0;
       const statusLabel = hasTasks ? "--- (ALREADY LOGGED - SKIP) ---" : "--- (NEW MESSAGE - ANALYZE) ---";
       
       return `${statusLabel}
@@ -1702,53 +1618,103 @@ function testConnection() {
 ΗΜΕΡΟΜΗΝΙΑ: ${m.getDate()}
 ΜΗΝΥΜΑ #${index + 1}:
 ${m.getPlainBody()}`;
-    }).join("\n\n");
+    }).join("\n\n---\n\n");
 
+    // Λήψη του Prompt και κλήση Gemini
     const systemPrompt = getTasksPrompt(); 
     const response = callGemini(fullText, systemPrompt);
     
-    // 3. Αποθήκευση
-    if (response && !response.includes("Error")) {
+    // 3. Αποθήκευση των αποτελεσμάτων
+    if (response && !response.includes("❌ Σφάλμα")) {
       StoreTasks(threadId, response);
     }
 
     return response;
     
   } catch (e) {
-    console.error("Σφάλμα στη runTasksPrompt:", e.message);
+    console.error("Σφάλμα στη runTasksPrompt: " + e.message);
     return "❌ Σφάλμα: " + e.message;
   }
 }
 
+/**
+ * ΣΥΝΑΡΤΗΣΗ 3: Αποθήκευση στη BigQuery
+ * Ολοκληρώνει τη διαδικασία γράφοντας τις γραμμές (lines) και τα νέα tasks.
+ */
+function StoreTasks(threadId, aiResponse) {
+  const projectId = 'gen-lang-client-0465952145';
+  const datasetId = 'summy_logs';
+
   try {
-    // 1. Ανάκτηση του Thread και των μηνυμάτων
+    // 1. Καθαρισμός και Parsing του JSON από την AI
+    const cleanJson = aiResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+    const data = JSON.parse(cleanJson);
+    if (!data.entries || !Array.isArray(data.entries)) return;
+
     const thread = GmailApp.getThreadById(threadId);
+    if (!thread) return;
+    
     const messages = thread.getMessages();
     
-    // 2. Προετοιμασία του κειμένου για την AI (Mapping)
-    const fullText = messages.map(m => {
-      return "ΑΠΟ: " + m.getFrom() + 
-             "\nΗΜΕΡΟΜΗΝΙΑ: " + m.getDate() + 
-             "\nΚΕΙΜΕΝΟ:\n" + m.getPlainBody();
-    }).join("\n---\n");
+    // Χρήση των βοηθητικών συναρτήσεων που υπάρχουν ήδη στον κώδικά σου
+    const customer = getClientDomain(thread); 
+    const consultant = extractConsultant(thread);
 
-    // 3. Λήψη του εξειδικευμένου Prompt (από TasksPrompt.js)
-    const systemPrompt = getTasksPrompt(); 
+    // 2. Εύρεση του Max Task ID για τα νέα tasks (NEW)
+    let currentMaxId = 100;
+    const maxRes = BigQuery.Jobs.query({ 
+      query: `SELECT MAX(task_id) FROM \`${projectId}.${datasetId}.tasks\``, 
+      useLegacySql: false 
+    }, projectId);
     
-    // 4. Κλήση της AI
-    const response = callGemini(fullText, systemPrompt);
-    
-    // 5. Αν η απάντηση είναι έγκυρη, προχωράμε στην αποθήκευση
-    if (response && !response.includes("Error")) {
-      // Κλήση της συνάρτησης αποθήκευσης που ορίσαμε
-      StoreTasks(threadId, response);
+    if (maxRes.rows && maxRes.rows[0].f[0].v) {
+      currentMaxId = parseInt(maxRes.rows[0].f[0].v);
     }
 
-    return response;
+    const taskMap = {};
+    const newTasksSQL = [];
+    const newLinesSQL = [];
+    const esc = (s) => String(s || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n|\r/g, " ");
+
+    data.entries.forEach(entry => {
+      // Μετατροπή msg_index (1-based από την AI) σε index πίνακα (0-based)
+      const idx = parseInt(entry.msg_index) - 1;
+      
+      if (messages[idx]) {
+        const mId = messages[idx].getId(); // Χρήση της σωστής μεθόδου .getId()
+        let tId = entry.task_id;
+        const tName = esc(entry.task_name);
+
+        // Διαχείριση νέων tasks
+        if (tId === "NEW") {
+          if (!taskMap[tName]) {
+            currentMaxId++;
+            taskMap[tName] = currentMaxId;
+            newTasksSQL.push(`(${currentMaxId}, '${tName}')`);
+          }
+          tId = taskMap[tName];
+        }
+
+        // Προετοιμασία της γραμμής για το task_lines
+        if (mId) {
+          newLinesSQL.push(`('${mId}', '${threadId}', ${tId}, ${entry.status_id}, '${esc(customer)}', '${esc(consultant)}', CURRENT_TIMESTAMP())`);
+        }
+      }
+    });
+
+    // 3. Εκτέλεση των Queries στη BigQuery
+    if (newTasksSQL.length > 0) {
+      const sqlTasks = `INSERT INTO \`${projectId}.${datasetId}.tasks\` (task_id, task_name) VALUES ${newTasksSQL.join(",")}`;
+      BigQuery.Jobs.query({ query: sqlTasks, useLegacySql: false }, projectId);
+    }
     
+    if (newLinesSQL.length > 0) {
+      const sqlLines = `INSERT INTO \`${projectId}.${datasetId}.task_lines\` (message_id, thread_id, task_id, status_id, customer_name, consultant_name, updated_at) VALUES ${newLinesSQL.join(",")}`;
+      BigQuery.Jobs.query({ query: sqlLines, useLegacySql: false }, projectId);
+      console.log("✅ Επιτυχής εγγραφή " + newLinesSQL.length + " γραμμών στη BQ.");
+    }
+
   } catch (e) {
-    console.error("Σφάλμα στη ροή runTasksPrompt:", e.message);
-    return "❌ Σφάλμα συστήματος Tasks: " + e.message;
+    console.error("CRITICAL StoreTasks Error: " + e.message);
   }
-
-
+}
