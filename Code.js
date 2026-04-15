@@ -1665,42 +1665,64 @@ function StoreTasks(threadId, aiResponse) {
   const datasetId = 'summy_logs';
 
   try {
+    // 1. Καθαρισμός JSON
     const cleanJson = aiResponse.replace(/```json/g, "").replace(/```/g, "").trim();
     const data = JSON.parse(cleanJson);
-    if (!data.entries) return;
+    if (!data.entries || !Array.isArray(data.entries)) return;
 
     const thread = GmailApp.getThreadById(threadId);
     const messages = thread.getMessages();
-    
-    // Φέρνουμε τα υπάρχοντα για να μην τα διπλοεγγράψουμε
-    const mIds = messages.map(m => m.id);
-    const existingTasksMap = getBulkMailTaskQueue(mIds);
+    const customer = getClientDomain(thread); 
+    const consultant = extractConsultant(thread);
 
+    // 2. Εύρεση Max Task ID
+    let currentMaxId = 100;
+    const maxRes = BigQuery.Jobs.query({ query: `SELECT MAX(task_id) FROM \`${projectId}.${datasetId}.tasks\``, useLegacySql: false }, projectId);
+    if (maxRes.rows && maxRes.rows[0].f[0].v) currentMaxId = parseInt(maxRes.rows[0].f[0].v);
+
+    const taskMap = {};
+    const newTasksSQL = [];
     const newLinesSQL = [];
     const esc = (s) => String(s || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n|\r/g, " ");
 
     data.entries.forEach(entry => {
-      const msgIdx = entry.msg_index - 1;
-      if (msgIdx < 0 || msgIdx >= messages.length) return;
+      // Κρίσιμο: Μετατροπή msg_index σε 0-based index
+      const idx = parseInt(entry.msg_index) - 1;
       
-      const mId = messages[msgIdx].getId();
+      // ΕΛΕΓΧΟΣ: Υπάρχει το μήνυμα σε αυτό το index;
+      if (messages[idx]) {
+        const mId = messages[idx].getId(); // Εδώ παίρνουμε το πραγματικό ID
+        let tId = entry.task_id;
+        const tName = esc(entry.task_name);
 
-      // ΚΡΙΣΙΜΟ: Αν το μήνυμα έχει ήδη tasks, το αγνοούμε στην αποθήκευση
-      if (existingTasksMap[mId] && existingTasksMap[mId].length > 0) {
-        console.log(`Skipping message ${mId} - already has tasks.`);
-        return; 
+        if (tId === "NEW") {
+          if (!taskMap[tName]) {
+            currentMaxId++;
+            taskMap[tName] = currentMaxId;
+            newTasksSQL.push(`(${currentMaxId}, '${tName}')`);
+          }
+          tId = taskMap[tName];
+        }
+
+        // Μόνο αν έχουμε έγκυρο mId προσθέτουμε τη γραμμή
+        if (mId) {
+          newLinesSQL.push(`('${mId}', '${threadId}', ${tId}, ${entry.status_id}, '${esc(customer)}', '${esc(consultant)}', CURRENT_TIMESTAMP())`);
+        }
+      } else {
+        console.warn("Skipping index: " + entry.msg_index + " (Not found in thread)");
       }
-
-      // ... υπόλοιπη λογική για NEW tasks (όπως την είχαμε φτιάξει) ...
-      // (Εδώ μπαίνει το push στο newLinesSQL)
     });
 
-    // Εκτέλεση SQL μόνο για τα πραγματικά νέα entries
+    // 3. Εκτέλεση Queries
+    if (newTasksSQL.length > 0) {
+      BigQuery.Jobs.query({ query: `INSERT INTO \`${projectId}.${datasetId}.tasks\` (task_id, task_name) VALUES ${newTasksSQL.join(",")}`, useLegacySql: false }, projectId);
+    }
     if (newLinesSQL.length > 0) {
-       // BigQuery.Jobs.query(...)
+      BigQuery.Jobs.query({ query: `INSERT INTO \`${projectId}.${datasetId}.task_lines\` (message_id, thread_id, task_id, status_id, customer_name, consultant_name, updated_at) VALUES ${newLinesSQL.join(",")}`, useLegacySql: false }, projectId);
+      console.log("✅ Successfully wrote " + newLinesSQL.length + " lines to BQ.");
     }
 
   } catch (e) {
-    console.error("StoreTasks Error:", e);
+    console.error("CRITICAL StoreTasks Error: " + e.message);
   }
 }
