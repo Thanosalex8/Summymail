@@ -1473,24 +1473,7 @@ function checkMyModels() {
   }
 }
 
-function deleteTasksForThread(tid) {
-  const projectId = 'gen-lang-client-0465952145';
-  const datasetId = 'summy_logs';
-  
-  const sql = `DELETE FROM \`${projectId}.${datasetId}.task_lines\` WHERE thread_id = '${tid}'`;
-  
-  try {
-    BigQuery.Jobs.query({ query: sql, useLegacySql: false }, projectId);
-    return "✅ Τα tasks διαγράφηκαν επιτυχώς από τη BigQuery.";
-  } catch (e) {
-    return "❌ Σφάλμα κατά τη διαγραφή: " + e.message;
-  }
-}
 
-/**
- * Διαγράφει όλα τα task lines ενός thread από τη BigQuery.
- * Καλούνταν από το confirmDeleteTasks στο Frontend.
- */
 function deleteTasksForThread(tid) {
   const projectId = 'gen-lang-client-0465952145';
   const datasetId = 'summy_logs';
