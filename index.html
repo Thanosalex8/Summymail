@@ -893,7 +893,7 @@ function syncTasksOnly(tid, thread) {
         </button>
       `;
     }
-  }).getBulkMailTaskQueue(mIds);
+  }).getBulkMailTaskQueue(mIds,tid));
 }
 
 
@@ -1223,7 +1223,6 @@ document.addEventListener('click', (e) => {
       const tid = currentDetail.id.replace('t-', '');
       if (tid) {
          renderChatUI(tid);
-       //  refreshAllTasksInThread(tid); // <--- ΑΥΤΗ ΕΙΝΑΙ Η ΓΡΑΜΜΗ ΠΟΥ ΠΡΟΣΤΕΘΗΚΕ! Φορτώνει τα Tasks αμέσως.
       }
 
       // 2. ACCORDION (Κλείνει μόνο τα άλλα Threads, ΟΧΙ τα Groups)
@@ -1607,7 +1606,7 @@ function refreshAllTasksInThread(tid) {
       }
       // Αν το κοντέινερ υπάρχει, κάλεσε τη renderTaskHtml για να "ζωγραφίσει" τα νέα δεδομένα.
     });
-  }).getBulkMailTaskQueue(mIds);
+  }).getBulkMailTaskQueue(mIds,tid));
   // Εκτέλεση της server-side συνάρτησης που φέρνει τα δεδομένα από τη BigQuery.
 }
 function triggerReanalyze() {
