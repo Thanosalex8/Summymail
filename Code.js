@@ -1590,12 +1590,57 @@ function testConnection() {
   }
 }
 
+
 /**
  * Εξειδικευμένη συνάρτηση για την επεξεργασία Tasks.
- * Εκτελεί τη ροή: Ανάγνωση Thread -> Gemini (Tasks Mode) -> Αποθήκευση.
+ * Στέλνει όλο το thread στην AI για context, αλλά ζητάει ανάλυση μόνο για τα νέα mails.
  */
+function runTasksPrompt(threadId) {
+  try {
+    const thread = GmailApp.getThreadById(threadId);
+    if (!thread) throw new Error("Thread not found: " + threadId);
 
-function runTasksPrompt(threadId) {{
+    const messages = thread.getMessages();
+    const mIds = messages.map(m => m.getId());
+
+    // 1. Φέρνουμε τα υπάρχοντα tasks από τη BigQuery για να ξέρουμε ποια mails να κάνουμε SKIP
+    // ΣΗΜΑΝΤΙΚΟ: Περνάμε το threadId ρητά για να αποφύγουμε το BQ Error
+    const existingTasksMap = getBulkMailTaskQueue(mIds, threadId); 
+    
+    // 2. Προετοιμασία κειμένου για την AI με έξυπνη σήμανση (Status Labels)
+    const fullText = messages.map((m, index) => {
+      const mId = m.getId();
+      // Έλεγχος αν το συγκεκριμένο mail έχει ήδη καταγεγραμμένα tasks
+      const hasTasks = existingTasksMap[mId] && existingTasksMap[mId].length > 0;
+      
+      const statusLabel = hasTasks ? "--- (ALREADY LOGGED - SKIP) ---" : "--- (NEW MESSAGE - ANALYZE) ---";
+      
+      return `${statusLabel}
+ΑΠΟ: ${m.getFrom()}
+ΗΜΕΡΟΜΗΝΙΑ: ${m.getDate()}
+ΜΗΝΥΜΑ #${index + 1}:
+${m.getPlainBody()}`;
+    }).join("\n\n---\n\n");
+
+    // 3. Λήψη του Prompt (από TasksPrompt.js) και κλήση της AI
+    const systemPrompt = getTasksPrompt(); 
+    const response = callGemini(fullText, systemPrompt);
+    
+    // 4. Αποθήκευση των αποτελεσμάτων στη BigQuery
+    if (response && !response.includes("❌ Σφάλμα")) {
+      // Η StoreTasks θα χρησιμοποιήσει το response για να γράψει μόνο τα NEW
+      StoreTasks(threadId, response);
+    }
+
+    return response;
+    
+  } catch (e) {
+    console.error("Σφάλμα στη ροή runTasksPrompt: " + e.message);
+    return "❌ Σφάλμα: " + e.message;
+  }
+}
+
+
   try {
     const thread = GmailApp.getThreadById(threadId);
     const messages = thread.getMessages();
