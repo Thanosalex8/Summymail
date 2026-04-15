@@ -893,7 +893,7 @@ function syncTasksOnly(tid, thread) {
         </button>
       `;
     }
-  }).getBulkMailTaskQueue(mIds,tid));
+  }).getBulkMailTaskQueue(mIds,tid);
 }
 
 
@@ -1606,7 +1606,7 @@ function refreshAllTasksInThread(tid) {
       }
       // Αν το κοντέινερ υπάρχει, κάλεσε τη renderTaskHtml για να "ζωγραφίσει" τα νέα δεδομένα.
     });
-  }).getBulkMailTaskQueue(mIds,tid));
+  }).getBulkMailTaskQueue(mIds,tid);
   // Εκτέλεση της server-side συνάρτησης που φέρνει τα δεδομένα από τη BigQuery.
 }
 function triggerReanalyze() {
