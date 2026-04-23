@@ -397,7 +397,8 @@ padding: 0 !important;
     let lastGMode = '';
     let authUser = "", authPass = "";
     // ADDED: Prompt Variable
-    let currentGlobalPrompt = <?!= JSON.stringify(sysPrompt) ?>;
+    /*let currentGlobalPrompt = <?!= JSON.stringify(sysPrompt) ?>;*/
+    let currentGlobalPrompt = <?!= JSON.stringify(sysPrompt || "") ?>;
 
     window.onload = function() { 
       document.getElementById('singleDate').value = new Date().toISOString().split('T')[0];
