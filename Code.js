@@ -1,5 +1,5 @@
 /*
- * SummyMail Pro - Backend (Code.gs)
+ * SummyMail Pro - Backend (Code.gs) Θάνος
  */
 
 var API_KEY =   PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
