@@ -1573,10 +1573,7 @@ function getBulkMailTaskQueue(messageIds, threadId) {
   }
 }
 
-/**
- * ΣΥΝΑΡΤΗΣΗ 2: Η κεντρική ροή ανάλυσης Tasks
- * Στέλνει το thread στην AI και δρομολογεί την αποθήκευση.
- */
+
 function runTasksPrompt(threadId) {
   try {
     const thread = GmailApp.getThreadById(threadId);
@@ -1616,14 +1613,10 @@ ${m.getPlainBody()}`;
     
   } catch (e) {
     console.error("Σφάλμα στη runTasksPrompt: " + e.message);
-    return "❌ Σφάλμα: " + e.message;
+    return "❌ Σφάλμα από runTasksPrompt: " + e.message;
   }
 }
 
-/**
- * ΣΥΝΑΡΤΗΣΗ 3: Αποθήκευση στη BigQuery
- * Ολοκληρώνει τη διαδικασία γράφοντας τις γραμμές (lines) και τα νέα tasks.
- */
 function StoreTasks(threadId, aiResponse) {
   const projectId = 'gen-lang-client-0465952145';
   const datasetId = 'summy_logs';
